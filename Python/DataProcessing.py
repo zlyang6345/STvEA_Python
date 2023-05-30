@@ -62,5 +62,21 @@ class DataProcessing:
 
             stvea.codex_protein = stvea.codex_protein[1:amount_codex]
 
+    def filter_codex(self, stvea):
+        """
+        We follow the gating strategy in Goltsev et al. to remove cells that are too small or large,
+        or have too low or too high expression in the blank channels. If the limits aren't specified,
+        the 0.025 and 0.99 quantiles are taken as the lower and upper bounds on size, and the 0.002 and 0.99
+        quantiles are used for the blank channel expression. We then normalize the protein expression values
+        by the total expression per cell.
+        :type stvea: an STvEA object
+        """
+        pass
+
+    def clean_codex(self, stvea):
+
+        pass
+
+
 
 
