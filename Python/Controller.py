@@ -10,6 +10,21 @@ class Controller:
         """
         Main method for the STvEA project
         """
+
+        welcome_info = """
+        
+
+   _____ _______    ______          
+  / ____|__   __|  |  ____|   /\    
+ | (___    | |_   _| |__     /  \   
+  \___ \   | \ \ / /  __|   / /\ \  
+  ____) |  | |\ V /| |____ / ____ \ 
+ |_____/   |_| \_/ |______/_/    \_\
+                                                                                                                                                                                                                                               
+                                                                                 
+"""
+
+        print(welcome_info)
         # create a STvEA object
         stvea = STvEA.STvEA()
 
@@ -17,18 +32,23 @@ class Controller:
         data_processing = DataProcessing.DataProcessing()
 
         # reading cvs files
-        print("reading cvs files...")
+        print("-------------------------------------------------------------------------")
+        print("Reading cvs files...")
+        print("-------------------------------------------------------------------------\n\n\n")
+
         data_processing.read(stvea)
 
         # print some summary information
+        print("-------------------------Summary Info------------------------------------")
         print("codex_protein: \n", stvea.codex_protein, "\n\n")
         print("codex_spatial: \n", stvea.codex_spatial, "\n\n")
         print("codex_size: \n", stvea.codex_size, "\n\n")
         print("codex_blanks: \n", stvea.codex_blanks, "\n\n")
 
-        print("cite_mRNA.shape: \n", stvea.cite_mRNA, "\n\n")
-        print("cite_latent.shape: \n", stvea.cite_latent, "\n\n")
+        print("cite_mRNA: \n", stvea.cite_mRNA, "\n\n")
+        print("cite_latent: \n", stvea.cite_latent, "\n\n")
         print("cite_protein: \n", stvea.cite_protein, "\n\n")
+        print("-------------------------Summary Info------------------------------------")
 
         while True:
             # whether to take subset of the data
