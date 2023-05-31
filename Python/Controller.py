@@ -1,5 +1,9 @@
+print("Here")
 import STvEA
+print("Here3")
 import DataProcessing
+print("Here2")
+
 
 class Controller:
     def __init__(self):
@@ -66,6 +70,7 @@ class Controller:
                 codex_amount = int(amounts[0])
                 cite_amount = int(amounts[1])
                 data_processing.take_subset(stvea,codex_amount, cite_amount)
+                break
             elif user_input == "n":
                 break
             else:
@@ -75,17 +80,14 @@ class Controller:
         while True:
             # filer and clean the data set
             # ask for user's opinion
-            user_input = input("Filer and clean CODEX?\n Input y or n")
+            user_input = input("Filer CODEX?\n Input y or n\n")
             if user_input == "y" :
                 data_processing.filter_codex(stvea)
+                break
             elif user_input == "n":
                 break
             else:
                 continue
-
-
-
-
 
 
 
