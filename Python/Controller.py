@@ -1,14 +1,10 @@
-print("Here")
 import STvEA
-print("Here3")
 import DataProcessing
-print("Here2")
 
 
 class Controller:
     def __init__(self):
         pass
-
 
     def main(self):
         """
@@ -55,8 +51,9 @@ class Controller:
         print("cite_mRNA: \n", stvea.cite_mRNA, "\n\n")
         print("cite_latent: \n", stvea.cite_latent, "\n\n")
         print("cite_protein: \n", stvea.cite_protein, "\n\n")
-        print("-------------------------Summary Info------------------------------------")
+        print("-------------------------Summary Info Done--------------------------------")
 
+        print("-------------------------Take Subset-------------------------------------")
         while True:
             # whether to take subset of the data
             # ask for user's opinion
@@ -69,26 +66,41 @@ class Controller:
                 amounts = user_input.split(",")
                 codex_amount = int(amounts[0])
                 cite_amount = int(amounts[1])
-                data_processing.take_subset(stvea,codex_amount, cite_amount)
+                data_processing.take_subset(stvea, codex_amount, cite_amount)
                 break
             elif user_input == "n":
                 break
             else:
                 continue
+        print("-------------------------Take Subset Done--------------------------------")
 
-
+        print("-------------------------Filter CODEX------------------------------------")
         while True:
             # filer and clean the data set
             # ask for user's opinion
             user_input = input("Filer CODEX?\n Input y or n\n")
-            if user_input == "y" :
+            if user_input == "y":
                 data_processing.filter_codex(stvea)
                 break
             elif user_input == "n":
                 break
             else:
                 continue
+        print("-------------------------Filter CODEX Done-------------------------------")
 
+        print("-------------------------Clean CODEX-------------------------------------")
+        while True:
+            # filer and clean the data set
+            # ask for user's opinion
+            user_input = input("Clean CODEX?\n Input y or n\n")
+            if user_input == "y":
+                data_processing.clean_codex(stvea)
+                break
+            elif user_input == "n":
+                break
+            else:
+                continue
+        print("-------------------------Clean CODEX Done--------------------------------")
 
 
 

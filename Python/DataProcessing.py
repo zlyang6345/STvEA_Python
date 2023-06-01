@@ -1,4 +1,7 @@
 import pandas as pd
+import numpy as np
+from sklearn.mixture import GaussianMixture
+from scipy.stats import norm
 
 
 class DataProcessing:
@@ -16,15 +19,14 @@ class DataProcessing:
         :param stvea: an STvEA object
         """
 
-        stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col = 0, header = 0)
+        stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
 
-        stvea.cite_protein = pd.read_csv("../Data/cite_protein.csv", index_col = 0, header = 0)
+        stvea.cite_protein = pd.read_csv("../Data/cite_protein.csv", index_col=0, header=0)
         stvea.cite_protein = stvea.cite_protein.apply(pd.to_numeric)
 
-        stvea.cite_mRNA = pd.read_csv("../Data/cite_mRNA.csv", index_col = 0, header = 0)
+        stvea.cite_mRNA = pd.read_csv("../Data/cite_mRNA.csv", index_col=0, header=0)
         stvea.cite_mRNA = stvea.cite_mRNA.apply(pd.to_numeric)
-
 
     def read_codex(self, stvea):
         """
@@ -32,18 +34,17 @@ class DataProcessing:
         :param stvea: an STvEA object
         """
 
-        stvea.codex_blanks = pd.read_csv("../Data/codex_blanks.csv", index_col=0, header = 0)
+        stvea.codex_blanks = pd.read_csv("../Data/codex_blanks.csv", index_col=0, header=0)
         stvea.codex_blanks = stvea.codex_blanks.apply(pd.to_numeric)
-        
-        stvea.codex_protein = pd.read_csv("../Data/codex_protein.csv", index_col=0, header = 0)
+
+        stvea.codex_protein = pd.read_csv("../Data/codex_protein.csv", index_col=0, header=0)
         stvea.codex_protein = stvea.codex_protein.apply(pd.to_numeric)
-        
-        stvea.codex_size = pd.read_csv("../Data/codex_size.csv", index_col=0, header = 0)
+
+        stvea.codex_size = pd.read_csv("../Data/codex_size.csv", index_col=0, header=0)
         stvea.codex_size = stvea.codex_size.apply(pd.to_numeric)
-        
-        stvea.codex_spatial = pd.read_csv("../Data/codex_spatial.csv", index_col=0, header = 0)
+
+        stvea.codex_spatial = pd.read_csv("../Data/codex_spatial.csv", index_col=0, header=0)
         stvea.codex_spatial = stvea.codex_spatial.apply(pd.to_numeric)
-        
 
     def take_subset(self, stvea, amount_codex=-1, amount_cite=-1):
 
@@ -71,9 +72,10 @@ class DataProcessing:
             stvea.codex_protein = stvea.codex_protein[1:amount_codex]
 
     def filter_codex(self, stvea,
-                     size_lim = [1000, 25000],
-                     blank_lower = [-1200, -1200, -1200, -1200],
-                     blank_upper = [6000, 2500, 5000, 2500]
+                     size_lim=[1000, 25000],
+                     # don't forget to replace these values with None and modify the main method in the end !!!!!!!!!!!!!!!!!!!!!
+                     blank_lower=[-1200, -1200, -1200, -1200],
+                     blank_upper=[6000, 2500, 5000, 2500]
                      ):
         """
         We follow the gating strategy in Goltsev et al. to remove cells that are too small or large,
@@ -89,7 +91,7 @@ class DataProcessing:
         """
         # If size_lim is not specified,
         # it defaults to the 0.025 and 0.99 quantiles of the size vector.
-        if size_lim is None:
+        if size_lim is None or size_lim[0] >= size_lim[1]:
             size_lim = stvea.codex_size[0].quantile([0.025, 0.99])
 
         # if blank_upper is none, it defaults to 0.995 quantile of the column vector
@@ -100,29 +102,75 @@ class DataProcessing:
         if blank_lower is None:
             blank_lower = stvea.codex_blanks.apply(lambda x: x.quantile(0.002), axis=0)
 
-
         # This loop iterates over each column (blank channel) of the blanks DataFrame.
         # For each column, it checks if the expression values of the corresponding blank
         # channel in each cell are greater than or equal to the corresponding lower
         # expression cutoff (blank_lower[i]).
-        blank_filter = pd.Series([True] * len(stvea.codex_blanks), index=stvea.codex_blanks.index)
+        blank_filter_lower = pd.Series([False] * len(stvea.codex_blanks), index=stvea.codex_blanks.index)
+        blank_filter_upper = pd.Series([True] * len(stvea.codex_blanks), index=stvea.codex_blanks.index)
 
         for i in range(len(stvea.codex_blanks.columns)):
-            condition1 = stvea.codex_blanks.iloc[:, i] >= blank_lower[i]
-            condition2 = stvea.codex_blanks.iloc[:, i] <= blank_upper[i]
-            blank_filter = (blank_filter & (condition1 & condition2))
+            # a cell whose all blank channels below the lower cutoff will be removed
+            blank_filter_lower = blank_filter_lower | (stvea.codex_blanks.iloc[:, i] >= blank_lower[i])
+            # a cell whose any blank channels above the upper cutoff will be removed
+            blank_filter_upper = blank_filter_upper & (stvea.codex_blanks.iloc[:, i] <= blank_upper[i])
 
+        blank_filter = blank_filter_lower & blank_filter_upper
+
+        # create size filter
         size_filter = ((size_lim[0] <= stvea.codex_size.iloc[:, 0]) & (stvea.codex_size.iloc[:, 0] <= size_lim[1]))
 
         # filter the original result
-        stvea.codex_size = stvea.codex_size[blank_filter & size_filter]
-        stvea.codex_blanks = stvea.codex_blanks[blank_filter & size_filter]
-        stvea.codex_protein = stvea.codex_protein[blank_filter & size_filter]
-        stvea.codex_spatial = stvea.codex_spatial[blank_filter & size_filter]
+        mask = blank_filter & size_filter
+
+        # filter tables
+        stvea.codex_size = stvea.codex_size[mask]
+        stvea.codex_blanks = stvea.codex_blanks[mask]
+        stvea.codex_protein = stvea.codex_protein[mask]
+        stvea.codex_spatial = stvea.codex_spatial[mask]
 
         # print the result
         print("Filter completed")
         print(len(stvea.codex_blanks), " records preserved")
 
     def clean_codex(self, stvea):
-        pass
+        """
+        We remove noise from the CODEX protein expression by first fitting a Gaussian mixture model to the expression
+        levels of each protein. The signal expression is taken as the cumulative probability according to the
+        Gaussian with the higher mean.
+
+        :param stvea: a STvEA object
+        """
+        # subtracts the minimum value of all the elements in codex_protein (a data frame) from each element in the
+        # data frame
+        codex_protein_norm = stvea.codex_protein - stvea.codex_protein.min().min()
+
+        # Calculate the row sums
+        row_sums = codex_protein_norm.sum(axis=1)
+
+        # Calculate the average of row sums
+        avg_cell_total = np.mean(row_sums)
+
+        # find rows that are not all 0s
+        nonzero = (row_sums != 0)
+
+        # each row divided by its sum and then multiplied by avg_cell_total
+        codex_protein_norm.loc[nonzero] = codex_protein_norm.loc[nonzero].div(row_sums[nonzero], axis=0) * avg_cell_total
+
+        # For each protein
+        for col in codex_protein_norm.columns:
+
+            # Compute Gaussian mixture on each protein
+            gm = GaussianMixture(n_components=2, covariance_type='full', random_state=0)
+
+            # fit the model
+            gm.fit(codex_protein_norm[col].values.reshape(-1, 1))
+
+            # Identify which component has the higher mean
+            signal = np.argmax(gm.means_)
+
+            # Compute cleaned data from cumulative of higher mean Gaussian
+            stvea.codex_protein[col] = norm.cdf(codex_protein_norm[col], loc=gm.means_[signal, 0],
+                                  scale=np.sqrt(gm.covariances_[signal, 0, 0]))
+
+        print("CODEX Cleaned")
