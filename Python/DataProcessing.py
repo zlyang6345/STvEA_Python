@@ -130,7 +130,7 @@ class DataProcessing:
         stvea.codex_spatial = stvea.codex_spatial[mask]
 
         # print the result
-        print("Filter completed")
+        print("Codex filtered!")
         print(len(stvea.codex_blanks), " records preserved")
 
     def clean_codex(self, stvea):
@@ -173,4 +173,8 @@ class DataProcessing:
             stvea.codex_protein[col] = norm.cdf(codex_protein_norm[col], loc=gm.means_[signal, 0],
                                   scale=np.sqrt(gm.covariances_[signal, 0, 0]))
 
-        print("CODEX Cleaned")
+        print("CODEX Cleaned!")
+
+    def clean_cite(self, stvea):
+
+        pass
