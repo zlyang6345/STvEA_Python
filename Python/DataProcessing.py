@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from sklearn.mixture import GaussianMixture
 from scipy.stats import norm
+from scipy.stats import nbinom
+from scipy.optimize import minimize
 
 
 class DataProcessing:
@@ -174,6 +176,33 @@ class DataProcessing:
                                   scale=np.sqrt(gm.covariances_[signal, 0, 0]))
 
         print("CODEX Cleaned!")
+
+
+    def SSE(args, p_obs):
+        """
+        Calculates the sum of squared errors in binned probabilities of count data
+
+        Parameters:
+        args (list): arguments used in the negative binomial mixture model
+        p_obs (pandas.DataFrame): a DataFrame of the probabilities of observing a given count
+                      in gene expression data, as output by running value_counts() on the gene count data
+        """
+        # Extract values from args
+        mu1, mu2, size_reciprocal1, size_reciprocal2, mixing_prop = args
+
+        # Convert index of p_obs from string to numeric, retaining order
+        p_obs_index = p_obs.index.astype(int)
+
+        # Expected probabilities (p_exp)
+        p_exp = (mixing_prop * nbinom.pmf(p_obs_index, 1 / size_reciprocal1, mu1)) + \
+                ((1 - mixing_prop) * nbinom.pmf(p_obs_index, 1 / size_reciprocal2, mu2))
+
+        # Calculate sum of squared errors (sse)
+        sse = min(np.sum((p_exp - p_obs.values.flatten()) ** 2),
+                  np.iinfo(np.int32).max)
+
+        return sse
+
 
     def clean_cite(self, stvea):
 
