@@ -5,8 +5,10 @@ from scipy.stats import norm
 from scipy.stats import nbinom
 from scipy.optimize import minimize
 
+import STvEA
 
-class DataProcessing:
+
+class DataProcessor:
 
     # this method will read relevant data (csv files) into STvEA object
     def read(self, stvea):
@@ -132,8 +134,7 @@ class DataProcessing:
         stvea.codex_spatial = stvea.codex_spatial[mask]
 
         # print the result
-        print("Codex filtered!")
-        print(len(stvea.codex_blanks), " records preserved")
+        print("Codex filtered!", len(stvea.codex_blanks), " records preserved")
 
     def clean_codex(self, stvea):
         """
@@ -157,11 +158,11 @@ class DataProcessing:
         nonzero = (row_sums != 0)
 
         # each row divided by its sum and then multiplied by avg_cell_total
-        codex_protein_norm.loc[nonzero] = codex_protein_norm.loc[nonzero].div(row_sums[nonzero], axis=0) * avg_cell_total
+        codex_protein_norm.loc[nonzero] = codex_protein_norm.loc[nonzero].div(row_sums[nonzero],
+                                                                              axis=0) * avg_cell_total
 
         # For each protein
         for col in codex_protein_norm.columns:
-
             # Compute Gaussian mixture on each protein
             gm = GaussianMixture(n_components=2, covariance_type='full', random_state=0)
 
@@ -173,12 +174,11 @@ class DataProcessing:
 
             # Compute cleaned data from cumulative of higher mean Gaussian
             stvea.codex_protein[col] = norm.cdf(codex_protein_norm[col], loc=gm.means_[signal, 0],
-                                  scale=np.sqrt(gm.covariances_[signal, 0, 0]))
+                                                scale=np.sqrt(gm.covariances_[signal, 0, 0]))
 
         print("CODEX Cleaned!")
 
-
-    def SSE(args, p_obs):
+    def SSE(sefl, args, p_obs):
         """
         Calculates the sum of squared errors in binned probabilities of count data
 
@@ -189,21 +189,123 @@ class DataProcessing:
         """
         # Extract values from args
         mu1, mu2, size_reciprocal1, size_reciprocal2, mixing_prop = args
+        size1 = 1 / size_reciprocal1
+        size2 = 1 / size_reciprocal2
+        p1 = size1 / (size1 + mu1)
+        p2 = size2 / (size2 + mu2)
 
-        # Convert index of p_obs from string to numeric, retaining order
-        p_obs_index = p_obs.index.astype(int)
+        p_obs_index = p_obs.index
 
         # Expected probabilities (p_exp)
-        p_exp = (mixing_prop * nbinom.pmf(p_obs_index, 1 / size_reciprocal1, mu1)) + \
-                ((1 - mixing_prop) * nbinom.pmf(p_obs_index, 1 / size_reciprocal2, mu2))
+        # http://library.isr.ist.utl.pt/docs/scipy/generated/scipy.stats.nbinom.html
+        # https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/NegBinomial
+        p_exp = (mixing_prop * nbinom.pmf(p_obs_index, size1, p1)) + ((1 - mixing_prop) * nbinom.pmf(p_obs_index, size2, p2))
 
         # Calculate sum of squared errors (sse)
-        sse = min(np.sum((p_exp - p_obs.values.flatten()) ** 2),
-                  np.iinfo(np.int32).max)
+        sse = min(sum((p_exp - p_obs.values) ** 2), np.iinfo(np.int32).max)
 
+        # print("SSE: ", sse)
         return sse
 
+    def generate_p_obs(self, protein_expr):
+        max_express = max(protein_expr)
+        p_obs = pd.Series(np.zeros(max_express + 1))
+        value_counts = protein_expr.value_counts().to_dict()
 
-    def clean_cite(self, stvea):
+        # Map the values from value_counts to p_obs
+        p_obs = p_obs.index.map(value_counts)
 
-        pass
+        p_obs = pd.Series(p_obs)
+
+        # Replace NaN values with 0
+        p_obs = p_obs.fillna(0)
+
+        p_obs = p_obs / len(protein_expr)
+
+        return p_obs
+
+
+
+
+    def fit_nb(self, protein_expr, maxit=500, factr=1e-9, optim_init=None):
+        """
+        Fits the expression values of one protein with a Negative Binomial mixture
+        Takes matrices and data frames instead of STvEA_R.data class
+
+        Parameters:
+        protein_expr (pandas.DataFrame): Raw CITE-seq protein data for one protein
+        maxit (int): maximum number of iterations for optim function
+        factr (float): accuracy of optim function
+        optim_init (list): optional initialization parameters for the optim function
+        if None, starts at two default parameter sets and picks the better one
+
+        :param protein_expr: Raw CITE-seq protein data for one protein
+        :param maxit: maximum number of iterations for optim function
+        :param factr: accuracty of optim function
+        :param optim_init: optional initialization parameters for the optim function, if NULL, starts at two default parameter sets and picks the better one
+        :return:
+        """
+        # Create a probability distribution from the raw protein expression data
+        p_obs = self.generate_p_obs(protein_expr)
+
+        method = "l-bfgs-b"
+        bound = [(1e-8, None)] * 4 + [(1e-8, 1)]
+
+        if optim_init is None:
+            # Sometimes negative binomial doesn't fit well with certain starting parameters, so try 2
+            # optim is a general optimization function
+            # [5,50,2,0.5,0.5] is the initial parameter
+            # SSE is the function to minimize
+            fit1 = minimize(self.SSE, [4.8, 50, 2, 0.5, 0.5], args=(p_obs),
+                            method=method, bounds= bound,
+                            options={'maxiter': maxit, 'ftol': factr})
+            fit2 = minimize(self.SSE, [4.8, 50, 0.5, 2, 0.5], args=(p_obs),
+                            method=method, bounds= bound,
+                            options={'maxiter': maxit, 'ftol': factr})
+            score1 = self.SSE(fit1.x, p_obs)
+            score2 = self.SSE(fit2.x, p_obs)
+            if score1 < score2:
+                fit = fit1.x
+            else:
+                fit = fit2.x
+        else:
+            fit = minimize(self.SSE, optim_init, args=(p_obs),
+                           method=method, bounds= bound,    
+                           options={'maxiter': maxit, 'ftol': factr}).x
+
+        mu1, mu2, size_reciprocal1, size_reciprocal2, mixing_prop = fit
+        size1 = 1 / size_reciprocal1
+        size2 = 1 / size_reciprocal2
+        p1 = size1 / (size1 + mu1)
+        p2 = size2 / (size2 + mu2)
+
+        # Distribution with higher median is signal
+        signal = np.argmax([nbinom.median(size1, p1),
+                            nbinom.median(size2, p2)])
+
+        size = 1 / fit[signal + 2]
+        p = size / (size + fit[signal])
+        expr_clean = nbinom.cdf(protein_expr, size, p)
+        return expr_clean
+
+    def clean_cite(self, stvea, maxit=500, factr=1e-9, optim_init=None):
+        stvea.cite_protein = stvea.cite_protein.apply(
+            lambda col: self.fit_nb(col, maxit=500, factr=1e-9, optim_init=optim_init))
+        print("CITE-seq protein cleaned!")
+
+
+
+
+
+
+# DataProcessor = DataProcessor()
+# args = [5, 20, 2, 0.5, 0.5]
+# protein_expr = [1, 2, 3, 4]
+# protein_expr = pd.Series(protein_expr)
+# # # p_obs = protein_expr.value_counts().sort_index() / len(protein_expr)
+# # print(DataProcessor.fit_nb(protein_expr))
+# result = DataProcessor.generate_p_obs(protein_expr)
+#
+# print(result)
+# print(type(result))
+#
