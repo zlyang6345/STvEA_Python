@@ -20,5 +20,6 @@ for i in range(size):
 string = "["
 for each in data:
     string += str(each) + ", "
+string = string[:-2]
 string += "]"
 print(string)

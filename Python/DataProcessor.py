@@ -10,6 +10,8 @@ import STvEA
 
 class DataProcessor:
 
+    overall_sse = 0
+
     # this method will read relevant data (csv files) into STvEA object
     def read(self, stvea):
 
@@ -214,12 +216,10 @@ class DataProcessor:
 
         # Map the values from value_counts to p_obs
         p_obs = p_obs.index.map(value_counts)
-
         p_obs = pd.Series(p_obs)
 
         # Replace NaN values with 0
         p_obs = p_obs.fillna(0)
-
         p_obs = p_obs / len(protein_expr)
 
         return p_obs
@@ -227,7 +227,7 @@ class DataProcessor:
 
 
 
-    def fit_nb(self, protein_expr, maxit=500, factr=1e-9, optim_init=None):
+    def fit_nb(self, protein_expr, col_name, maxit=500, factr=1e-9, optim_init=None):
         """
         Fits the expression values of one protein with a Negative Binomial mixture
         Takes matrices and data frames instead of STvEA_R.data class
@@ -247,6 +247,7 @@ class DataProcessor:
         """
         # Create a probability distribution from the raw protein expression data
         p_obs = self.generate_p_obs(protein_expr)
+        print(col_name + ": ")
 
         method = "l-bfgs-b"
         bound = [(1e-8, None)] * 4 + [(1e-8, 1)]
@@ -256,18 +257,45 @@ class DataProcessor:
             # optim is a general optimization function
             # [5,50,2,0.5,0.5] is the initial parameter
             # SSE is the function to minimize
-            fit1 = minimize(self.SSE, [4.8, 50, 2, 0.5, 0.5], args=(p_obs),
-                            method=method, bounds= bound,
+            fit1 = minimize(self.SSE, [10, 60, 2, 0.5, 0.5], args=(p_obs),
+                            method=method, bounds=bound,
                             options={'maxiter': maxit, 'ftol': factr})
             fit2 = minimize(self.SSE, [4.8, 50, 0.5, 2, 0.5], args=(p_obs),
-                            method=method, bounds= bound,
+                            method=method, bounds=bound,
                             options={'maxiter': maxit, 'ftol': factr})
+            fit3 = minimize(self.SSE, [2, 18, 0.5, 2, 0.5], args=(p_obs),
+                            method=method, bounds=bound,
+                            options={'maxiter': maxit, 'ftol': factr})
+            fit4 = minimize(self.SSE, [1, 3, 2, 2, 0.5], args=(p_obs),
+                            method=method, bounds=bound,
+                            options={'maxiter': maxit, 'ftol': factr})
+            fit5 = minimize(self.SSE, [1, 3, 0.5, 2, 0.5], args=(p_obs),
+                            method=method, bounds=bound,
+                            options={'maxiter': maxit, 'ftol': factr})
+
             score1 = self.SSE(fit1.x, p_obs)
             score2 = self.SSE(fit2.x, p_obs)
-            if score1 < score2:
+            score3 = self.SSE(fit3.x, p_obs)
+            score4 = self.SSE(fit4.x, p_obs)
+            score5 = self.SSE(fit5.x, p_obs)
+
+            m = min(score1, score2, score3, score4, score5)
+            self.overall_sse += m
+            if score1 == m:
+                print("SSE1: ", score1)
                 fit = fit1.x
-            else:
+            elif score2 == m:
+                print("SSE2: ", score2)
                 fit = fit2.x
+            elif score3 == m:
+                print("SSE3: ", score3)
+                fit = fit3.x
+            elif score4 == m:
+                print("SSE4: ", score4)
+                fit = fit4.x
+            else:
+                print("SSE5: ", score5)
+                fit = fit5.x
         else:
             fit = minimize(self.SSE, optim_init, args=(p_obs),
                            method=method, bounds= bound,    
@@ -288,9 +316,11 @@ class DataProcessor:
         expr_clean = nbinom.cdf(protein_expr, size, p)
         return expr_clean
 
+
     def clean_cite(self, stvea, maxit=500, factr=1e-9, optim_init=None):
         stvea.cite_protein = stvea.cite_protein.apply(
-            lambda col: self.fit_nb(col, maxit=500, factr=1e-9, optim_init=optim_init))
+            lambda col: self.fit_nb(col, col.name, maxit=500, factr=1e-9, optim_init=optim_init))
+        print("Overall SSE: ", self.overall_sse)
         print("CITE-seq protein cleaned!")
 
 
@@ -298,14 +328,11 @@ class DataProcessor:
 
 
 
-# DataProcessor = DataProcessor()
-# args = [5, 20, 2, 0.5, 0.5]
-# protein_expr = [1, 2, 3, 4]
-# protein_expr = pd.Series(protein_expr)
-# # # p_obs = protein_expr.value_counts().sort_index() / len(protein_expr)
-# # print(DataProcessor.fit_nb(protein_expr))
-# result = DataProcessor.generate_p_obs(protein_expr)
+#DataProcessor = DataProcessor()
+#args = [5, 20, 2, 0.5, 0.5]
+#protein_expr = [2, 16, 11, 6, 4, 7, 7, 12, 11, 8, 13, 14, 5, 5, 6, 17, 14, 4, 16, 15, 13, 14, 12, 14, 14, 14, 4, 5, 4, 7, 8, 9, 7, 6, 5, 16, 6, 11, 13, 5, 15, 7, 5, 4, 16, 14, 6, 15, 18, 13]
+#protein_expr = pd.Series(protein_expr)
+#p_obs = DataProcessor.generate_p_obs(protein_expr)
+#print(DataProcessor.fit_nb(protein_expr))
 #
-# print(result)
-# print(type(result))
-#
+

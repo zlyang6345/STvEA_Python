@@ -11,6 +11,8 @@ r_codex_protein = r_codex_protein.apply(pd.to_numeric)
 fig, ax = plt.subplots(figsize=(12, 12))  # Creates a larger figure
 
 for i, column in enumerate(r_codex_protein.columns):
+    # if(column not in ["IgM", "CD44", "CD11c"]):
+    #     continue
     x = r_codex_protein[[column]]
     y = python_codex_protein[[column]]
     ax.scatter(x, y, label=column)
