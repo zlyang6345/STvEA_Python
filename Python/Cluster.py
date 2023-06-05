@@ -20,11 +20,13 @@ class Cluster:
             raise ValueError("stvea_object does not contain CITE-seq data")
 
         if not stvea.cite_latent.empty:
+            # recommended
             res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
                             negative_sample_rate=negative_sample_rate, n_components=2).fit_transform(stvea.cite_latent)
             stvea.cite_emb = pd.DataFrame(res)
 
         elif not stvea.cite_mRNA.empty:
+            # implemented, but not recommended
             res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
                             negative_sample_rate=negative_sample_rate, n_components=2).fit_transform(stvea.cite_mRNA)
             stvea.cite_emb = pd.DataFrame(res)
