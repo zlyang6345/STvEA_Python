@@ -4,6 +4,9 @@ from sklearn.mixture import GaussianMixture
 from scipy.stats import norm
 from scipy.stats import nbinom
 from scipy.optimize import minimize
+from scipy.special import psi, polygamma
+from scipy.special import gammaln, psi  # gamma function utils
+from scipy.optimize import fmin_l_bfgs_b  # numerical optimization
 
 import STvEA
 
@@ -210,6 +213,12 @@ class DataProcessor:
         return sse
 
     def generate_p_obs(self, protein_expr):
+        """
+        Given a protein expression series, this function will count frequencies
+         and calculate each frequencies' probability.
+        :param protein_expr:  a protein expression series
+        :return:  a dataframe.
+        """
         max_express = max(protein_expr)
         p_obs = pd.Series(np.zeros(max_express + 1))
         value_counts = protein_expr.value_counts().to_dict()
@@ -220,11 +229,11 @@ class DataProcessor:
 
         # Replace NaN values with 0
         p_obs = p_obs.fillna(0)
+
+        # calculate probability
         p_obs = p_obs / len(protein_expr)
 
         return p_obs
-
-
 
 
     def fit_nb(self, protein_expr, col_name, maxit=500, factr=1e-9, optim_init=None):
@@ -253,7 +262,7 @@ class DataProcessor:
         bound = [(1e-8, None)] * 4 + [(1e-8, 1)]
 
         if optim_init is None:
-            # Sometimes negative binomial doesn't fit well with certain starting parameters, so try 2
+            # Sometimes negative binomial doesn't fit well with certain starting parameters, so try 5
             # optim is a general optimization function
             # [5,50,2,0.5,0.5] is the initial parameter
             # SSE is the function to minimize
@@ -314,18 +323,49 @@ class DataProcessor:
         size = 1 / fit[signal + 2]
         p = size / (size + fit[signal])
         expr_clean = nbinom.cdf(protein_expr, size, p)
+
         return expr_clean
 
+    def norm_cite(self, cite_protein, row_sums):
+        """
+        This function will normalize CITE-seq cells
+        :param cite_protein: a dataframe.
+        :param row_sums:  row sums of original protein expression dataframe.
+        :return: a dataframe.
+        """
+        # normalize
+        # find rows that are not all 0s
+        nonzero = (row_sums != 0)
+
+        # each row divided by its sum
+        cite_protein = cite_protein.loc[nonzero].div(row_sums[nonzero], axis=0)
+
+        # subtracts the minimum value of all the elements in codex_protein (a data frame) from each element in the
+        cite_protein = cite_protein - cite_protein.min()
+
+        # divide each entry with its column's largest number
+        cite_protein = cite_protein.div(cite_protein.max(axis=0), axis=1)
+
+        return cite_protein
 
     def clean_cite(self, stvea, maxit=500, factr=1e-9, optim_init=None):
+        """
+        This function will use mixture negative binomial distribution models to clean CITEseq protein data
+        :param stvea: a STvEA object
+        :param maxit: the maximum number of iterations
+        :param factr: accuracy of optim function
+        :param optim_init: a vector of with initialization
+        """
+        # Calculate the row sums
+        row_sums = stvea.cite_protein.sum(axis=1)
+
         stvea.cite_protein = stvea.cite_protein.apply(
             lambda col: self.fit_nb(col, col.name, maxit=500, factr=1e-9, optim_init=optim_init))
+
+        stvea.cite_protein = self.norm_cite(stvea.cite_protein, row_sums)
+
         print("Overall SSE: ", self.overall_sse)
         print("CITE-seq protein cleaned!")
-
-
-
-
 
 
 #DataProcessor = DataProcessor()
@@ -334,5 +374,7 @@ class DataProcessor:
 #protein_expr = pd.Series(protein_expr)
 #p_obs = DataProcessor.generate_p_obs(protein_expr)
 #print(DataProcessor.fit_nb(protein_expr))
-#
+#data = {'A': [1, 2, 3], 'Age': [20, 21, 19]}
+##df = pd.DataFrame(data)
+#print(DataProcessor.norm_cite(df, df.sum(axis=1)))
 
