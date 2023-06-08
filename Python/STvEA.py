@@ -11,6 +11,7 @@ class STvEA:
     codex_protein = pd.DataFrame()
     codex_size = pd.DataFrame()
     codex_spatial = pd.DataFrame()
+    codex_emb = pd.DataFrame()
 
     hdbscan_scans = list()
     cite_cluster = list()

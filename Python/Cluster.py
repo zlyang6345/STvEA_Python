@@ -15,19 +15,48 @@ class Cluster:
         pass
 
     @staticmethod
+    def cluster_codex(stvea, ):
+        pass
+
+    @staticmethod
+    def codex_umap(stvea, metric="correlation", n_neighbors=30, min_dist=0.1, negative_sample_rate=50):
+        """
+        This method perform umap on codex protein data and create a 2d embedding.
+
+        :param stvea: a STvEA object.
+        :param metric: the metric to use here, default to correlation.
+        :param n_neighbors: the number of neighbors, default to 30.
+        :param min_dist: the effective minimum distance between embedded points.
+        :param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
+        :return:
+        """
+        if stvea.codex_protein.empty:
+            raise ValueError("stvea object does not contain codex protein data")
+
+        res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
+                            negative_sample_rate=negative_sample_rate, n_components=2).fit_transform(stvea.codex_protein)
+        stvea.codex_emb = pd.DataFrame(res)
+
+        return
+
+
+    @staticmethod
     def cite_umap(stvea, metric="correlation", n_neighbors=50, min_dist=0.1, negative_sample_rate=50):
         """
         This function will perform umap on cite_latent or cite_mrna data,
         and construct a 2D embedding.
-        :param stvea: a STvEA object
-        :param metric: the metric to calculate distance
-        :param n_neighbors: the number of neighbors
+        cite_latent and cite_mrna will used here instead of protein data
+        because cite_latent and cite_mrna are more informative
+
+        :param stvea: a STvEA object.
+        :param metric: the metric to calculate distance.
+        :param n_neighbors: the number of neighbors.
         :param min_dist: the effective minimum distance between embedded points.
         :param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
         :return:
         """
         if stvea.cite_latent.empty and stvea.cite_mRNA.empty:
-            raise ValueError("stvea_object does not contain CITE-seq data")
+            raise ValueError("stvea object does not contain CITE-seq mRNA or latent data")
 
         if not stvea.cite_latent.empty:
             # recommended
@@ -44,11 +73,12 @@ class Cluster:
         return
 
     @staticmethod
-    def run_hdbscan(latent, umap_latent, min_cluster_size_list, min_sample_list, cache_dir="./HDBSCAN_cache"):
+    def run_hdbscan(latent, umap_latent, min_cluster_size_list, min_sample_list, metric, cache_dir="./HDBSCAN_cache"):
         """
         This function is borrowed from original STvEA R library.
         https://github.com/CamaraLab/STvEA/blob/master/inst/python/consensus_clustering.py
 
+        :param metric: metric to run HDBSCAN
         :param umap_latent: cite_latent data after being transformed by umap.
         :param min_cluster_size_list: a vector of min_cluster_size arguments to scan over
         :param min_sample_list: a vector of min_sample arguments to scan over
@@ -63,10 +93,10 @@ class Cluster:
             for min_cluster_size in min_cluster_size_list:
                 if (cache_dir is None):
                     clusterer = hdbscan.HDBSCAN(min_cluster_size=int(min_cluster_size), min_samples=int(min_samples),
-                                                metric="correlation")
+                                                metric=metric)
                 else:
                     clusterer = hdbscan.HDBSCAN(min_cluster_size=int(min_cluster_size), min_samples=int(min_samples),
-                                                metric="correlation", memory=cache_dir)
+                                                metric=metric, memory=cache_dir)
                 hdbscan_labels = clusterer.fit_predict(umap_latent)
                 results.append(hdbscan_labels.tolist())
         return results
@@ -95,7 +125,7 @@ class Cluster:
 
         # Running HDBSCAN on the UMAP space
         print("Running HDBSCAN on the UMAP space")
-        hdbscan_labels = Cluster().run_hdbscan(cite_latent, umap_latent, min_cluster_size_range, min_sample_range)
+        hdbscan_labels = Cluster().run_hdbscan(cite_latent, umap_latent, min_cluster_size_range, min_sample_range, metric=metric)
 
         # calculate scores
         all_scores = []
@@ -103,7 +133,7 @@ class Cluster:
         for label in hdbscan_labels:
             # Calculate silhouette scores
             #score = silhouette_score(cite_latent, label, metric="correlation")
-            scores = silhouette_samples(cite_latent, label, metric="correlation")
+            scores = silhouette_samples(cite_latent, label, metric="euclidean")
             score = np.mean(scores)
             all_scores.append(score)
             hdbscan_results.append({
@@ -123,6 +153,16 @@ class Cluster:
 
     @staticmethod
     def consensus_cluster_internal(distance_matrix, inconsistent_value=0.3, min_cluster_size=10):
+        """
+        This function was borrowed from original STvEA R program.
+        This function will perform clustering given the distance matrix.
+        https://github.com/CamaraLab/STvEA/blob/master/inst/python/consensus_clustering.py
+
+        :param distance_matrix: a consensus distance matrix based on HDBSCAN results.
+        :param inconsistent_value: input parameter to fcluster determining where clusters are cut in the hierarchical tree.
+        :param min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
+        :return: a list of labels
+        """
         new_distance = squareform(distance_matrix)
         hierarchical_tree = linkage(new_distance, "average")
         hier_consensus_labels = fcluster(hierarchical_tree, t=inconsistent_value)
@@ -136,38 +176,81 @@ class Cluster:
 
     @staticmethod
     def consensus_cluster(stvea, silhouette_cutoff, inconsistent_value, min_cluster_size):
-        hdbscan_results = stvea.hdbscan_scans
+        """
+        This function will first generate a distance matrix based on HDBSCAN results,
+        and then invoke clustering function to perform clustering based on the distance matrix.
+        :param stvea: a STvEA object.
+        :param silhouette_cutoff: HDBSCAN results below this cutoff will be discarded.
+        :param inconsistent_value: input parameter to fcluster determining where clusters are cut in the hierarchical tree.
+        :param min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
+        :return
+        """
         # initialize some variables
+        hdbscan_results = stvea.hdbscan_scans
         num_cells = len(hdbscan_results[0]['cluster_labels'])
         # initialize a consensus matrix
         consensus_matrix = np.zeros((num_cells, num_cells))
         total_runs = 0
 
+        # scan each result in the hdbscan_results
         for result in hdbscan_results:
 
+            # if the silhouette score is larger than the silhouette_cutoff
             if result['silhouette_score'] >= silhouette_cutoff:
+
+                # calculate a similar matrix sim_matrix
                 sim_matrix = np.zeros((num_cells, num_cells))
 
+                # loop through each cell
                 for cell1 in range(num_cells):
-                    if result['cluster_labels'][cell1] != -1:
-                        sim_matrix[:, cell1] = 1 * (result['cluster_labels'] == result['cluster_labels'][cell1])
 
+                    # if a cell belongs to the same cluster
+                    # 1 in the entry
+                    if result['cluster_labels'][cell1] != -1:
+                        condition = 1 * (pd.Series(result['cluster_labels']) == result['cluster_labels'][cell1])
+                        sim_matrix[:, cell1] = condition
+
+                # set diagonal entries in the matrix to be 1
                 np.fill_diagonal(sim_matrix, 1)
+                # add the results to the consensus_matrix
                 consensus_matrix -= sim_matrix
                 total_runs += 1
 
+        # flip the result to become a distance matrix
         consensus_matrix += total_runs
+
         if total_runs > 0:
+            # normalize
             consensus_matrix /= total_runs
         else:
             print("Warning: No clustering runs passed the silhouette score cutoff")
 
+        # perform clustering
         consensus_clusters = Cluster().consensus_cluster_internal(consensus_matrix,
                                                                   inconsistent_value,
                                                                   min_cluster_size)
-        # don't relabel the result as R implementation did
-        stvea.cite_cluster = consensus_clusters
+        # relabel the result as R implementation did
+        original_array = np.array(consensus_clusters)
+
+        # Find unique elements and sort them
+        unique_elements = np.sort(np.unique(original_array))
+
+        # Create a pandas series with index as unique_elements and values as sequence from -1
+        map_series = pd.Series(np.concatenate([np.arange(-1, 0), np.arange(1, len(unique_elements))]), index=unique_elements)
+
+        # Map original_array to new values using map_series
+        new_array = map_series[original_array].values
+
+        # store the result in the STvEA object
+        stvea.cite_cluster = new_array
+
         return
+
+
+
+
+
+
 
 
 
