@@ -1,3 +1,4 @@
+import igraph as igraph
 import numpy as np
 import umap.umap_ as umap
 import pandas as pd
@@ -7,6 +8,11 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, fcluster
+import networkx as nx
+import community as community_louvain
+from sklearn.neighbors import NearestNeighbors
+from igraph import Graph
+
 
 
 class Cluster:
@@ -15,8 +21,33 @@ class Cluster:
         pass
 
     @staticmethod
-    def cluster_codex(stvea, ):
-        pass
+    def cluster_codex(stvea, k=30, metric="correlation", knn_option=1):
+
+        # find knn
+        if knn_option == 1:
+            # use umap
+            stvea.codex_knn = pd.DataFrame(
+                umap.nearest_neighbors(X=stvea.codex_protein, metric=metric, n_neighbors=k, metric_kwds={},
+                                       random_state=10, angular=False)[0])
+            stvea.codex_knn = stvea.codex_knn.iloc[:, 1:]
+        elif knn_option == 2:
+            knn = NearestNeighbors(n_neighbors=k, metric='euclidean').fit(stvea.codex_emb)
+            stvea.codex_knn = knn.kneighbors(stvea.codex_emb)[1]
+        else:
+            raise ValueError
+        codex_knn = pd.DataFrame(stvea.codex_knn)
+
+        # create edge list
+        edge_list = []
+        for name, row in codex_knn.iterrows():
+            for col in row:
+                edge_list.append([name, col])
+
+        # perform louvain community detection ()
+        g = Graph(edges=edge_list)
+        stvea.codex_cluster = g.community_multilevel().membership
+        return
+
 
     @staticmethod
     def codex_umap(stvea, metric="correlation", n_neighbors=30, min_dist=0.1, negative_sample_rate=50):

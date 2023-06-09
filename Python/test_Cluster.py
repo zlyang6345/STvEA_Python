@@ -11,6 +11,32 @@ import STvEA
 
 class TestCluster(TestCase):
 
+    def test_cluster_codex(self):
+        stvea = STvEA.STvEA()
+        data_processor = DataProcessor.DataProcessor()
+        data_processor.read(stvea)
+        data_processor.clean_codex(stvea)
+        Cluster.Cluster().codex_umap(stvea)
+        Cluster.Cluster().cluster_codex(stvea)
+
+        # plot python
+        plot_df = pd.DataFrame({"x": stvea.codex_emb[0], "y": stvea.codex_emb[1],
+                                "Clusters": stvea.codex_cluster})
+        plt.figure(figsize=(12, 12))
+        sns.scatterplot(data=plot_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
+        plt.title("Python CODEX Clusters")
+        plt.show()
+
+
+        # plot R
+        r_codex_df = pd.read_csv("../Tests/r_codex_clusters.csv", index_col=0, header=0)
+        r_codex_df = r_codex_df.apply(pd.to_numeric)
+        plt.figure(figsize=(12, 12))
+        sns.scatterplot(data=r_codex_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
+        plt.title("R CODEX Clusters")
+        plt.show()
+
+
     def test_codex_umap(self):
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor()
@@ -25,10 +51,9 @@ class TestCluster(TestCase):
         r_codex_df = pd.read_csv("../Tests/r_codex_umap_emb.csv", index_col=0, header=0)
         r_codex_df = r_codex_df.apply(pd.to_numeric)
         fig, ax = plt.subplots(figsize=(12, 12))
-        r_codex_df.apply(lambda  x: ax.scatter(x[0], x[1]), axis=1)
+        r_codex_df.apply(lambda x: ax.scatter(x[0], x[1]), axis=1)
         ax.set_title("CODEX UMAP results of R")
         plt.show()
-
 
     def test_cite_umap(self):
         stvea = STvEA.STvEA()
@@ -68,7 +93,6 @@ class TestCluster(TestCase):
         Cluster.Cluster().parameter_scan(stvea, list(range(5, 21, 4)), list(range(10, 41, 3)))
 
     def test_consensus_cluster(self):
-
         stvea = STvEA.STvEA()
         stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
@@ -104,11 +128,4 @@ class TestCluster(TestCase):
         sns.scatterplot(data=r_cite_cluster_df, x="x", y="y", hue="Cluster", palette="deep", s=60)
         plt.title("R CITE Clusters")
         plt.show()
-
-
-
-
-
-
-
 
