@@ -21,31 +21,56 @@ class Cluster:
         pass
 
     @staticmethod
-    def cluster_codex(stvea, k=30, metric="correlation", knn_option=1):
+    def add_to_edge_list(edge_list, row, row_name):
+        """
+        This is a helper function invoked by cluster_codex.
 
+        :param edge_list: an edge list.
+        :param row: a pandas' dataframe row.
+        :param row_name: the row's name.
+        """
+        row.apply(lambda col: edge_list.append([row_name, col]))
+
+    @staticmethod
+    def cluster_codex(stvea, k=30, knn_option=1):
+        """
+        This function will cluster codex cells.
+
+        :param stvea: a STvEA object.
+        :param k: the number of nearest neighbors to generate graph.
+        The graph will be used to perform Louvain community detection.
+        :param knn_option: the way to detect nearest neighbors.
+        1: use Pearson distance to find nearest neighbors on CODEX protein data.
+        2: use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
+        :return:
+        """
         # find knn
         if knn_option == 1:
-            # use umap
+            # use Pearson distance to find nearest neighbors on CODEX protein data.
             stvea.codex_knn = pd.DataFrame(
-                umap.nearest_neighbors(X=stvea.codex_protein, metric=metric, n_neighbors=k, metric_kwds={},
-                                       random_state=10, angular=False)[0])
+                umap.nearest_neighbors(X=stvea.codex_protein, metric="correlation", n_neighbors=k, metric_kwds={},
+                                       random_state=0, angular=False)[0])
             stvea.codex_knn = stvea.codex_knn.iloc[:, 1:]
         elif knn_option == 2:
-            knn = NearestNeighbors(n_neighbors=k, metric='euclidean').fit(stvea.codex_emb)
-            stvea.codex_knn = knn.kneighbors(stvea.codex_emb)[1]
+            # use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
+            stvea.codex_knn = pd.DataFrame(
+                umap.nearest_neighbors(X=stvea.codex_emb, metric="euclidean", n_neighbors=k, metric_kwds={},
+                                       random_state=0, angular=False)[0])
+            stvea.codex_knn = stvea.codex_knn.iloc[:, 1:]
         else:
             raise ValueError
+
+        # convert to pandas dataframe
         codex_knn = pd.DataFrame(stvea.codex_knn)
 
         # create edge list
         edge_list = []
-        for name, row in codex_knn.iterrows():
-            for col in row:
-                edge_list.append([name, col])
+        codex_knn.apply(lambda row:Cluster().add_to_edge_list(edge_list, row, row.name), axis=1)
 
         # perform louvain community detection ()
         g = Graph(edges=edge_list)
         stvea.codex_cluster = g.community_multilevel().membership
+
         return
 
 
@@ -243,6 +268,7 @@ class Cluster:
 
                 # set diagonal entries in the matrix to be 1
                 np.fill_diagonal(sim_matrix, 1)
+
                 # add the results to the consensus_matrix
                 consensus_matrix -= sim_matrix
                 total_runs += 1
@@ -255,6 +281,7 @@ class Cluster:
             consensus_matrix /= total_runs
         else:
             print("Warning: No clustering runs passed the silhouette score cutoff")
+            exit(1)
 
         # perform clustering
         consensus_clusters = Cluster().consensus_cluster_internal(consensus_matrix,

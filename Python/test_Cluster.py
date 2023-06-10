@@ -24,7 +24,7 @@ class TestCluster(TestCase):
                                 "Clusters": stvea.codex_cluster})
         plt.figure(figsize=(12, 12))
         sns.scatterplot(data=plot_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
-        plt.title("Python CODEX Clusters")
+        plt.title("Python CODEX Clusters 1")
         plt.show()
 
 
