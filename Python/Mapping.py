@@ -11,7 +11,6 @@ from scipy.sparse.linalg import svds
 from scipy.spatial.distance import cdist
 from scipy.stats import pearsonr
 from scipy.spatial import KDTree
-import pandas as pd
 from scipy.stats import pearsonr
 
 class Mapping:
