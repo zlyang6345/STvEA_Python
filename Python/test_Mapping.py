@@ -43,9 +43,9 @@ class TestMapping(TestCase):
         plt.show()
 
     def test_cor_nn(self):
-        data = np.array([[0.12077515, 0.48107759, 0.87388194, 0.24158751,],
-                            [0.90204987, 0.41464509, 0.52640825, 0.18158962],
-                          [0.19345103, 0.04797827, 0.38439081, 0.93312622],
+        data = np.array([[0.12077515, 0.48107759, 0.87388194, 0.24158751, ],
+                         [0.90204987, 0.41464509, 0.52640825, 0.18158962],
+                         [0.19345103, 0.04797827, 0.38439081, 0.93312622],
                          [0.58445907, 0.22734591, 0.9730414, 0.02516982],
                          [0.59758854, 0.39400318, 0.84912261, 0.68797172],
                          [0.65016248, 0.26449771, 0.46336556, 0.68900643],
@@ -58,4 +58,80 @@ class TestMapping(TestCase):
         result = Mapping.Mapping().cor_nn(data, data)
         nn_idx = result["nn_idx"]
         assert list(nn_idx.iloc[0, :]) == list([0, 8, 7, 3, 9])
+
+    def test_find_nn_rna(self):
+        stvea = STvEA.STvEA()
+        data_processor = DataProcessor.DataProcessor()
+        data_processor.read(stvea)
+
+        r_cca_result = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
+        r_cca_result = r_cca_result.apply(pd.to_numeric)
+        cite_count = 1000
+        neighbors = Mapping.Mapping().find_nn_rna(ref_emb = r_cca_result.iloc[:cite_count, :],
+                                                  query_emb=r_cca_result.iloc[cite_count:, :],
+                                                  rna_mat=stvea.cite_latent,
+                                                  k=80)
+
+        r_nn_qq = pd.read_csv("../Tests/r_nn_qq.csv", index_col=0, header=0)
+        r_nn_qq = r_nn_qq.apply(pd.to_numeric)
+        fig, ax = plt.subplots(figsize=(12, 12))
+
+        for j in range(81):
+            x = r_nn_qq.iloc[:, j]
+            y = neighbors["nn_qq"]["nn_idx"].iloc[:, j]
+            ax.scatter(x, y)
+
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        ax.set_title("Scatter Plot of nn_qq Result")
+        plt.show()
+
+
+        r_nn_rr = pd.read_csv("../Tests/r_nn_rr.csv", index_col=0, header=0)
+        r_nn_rr = r_nn_rr.apply(pd.to_numeric)
+        fig, ax = plt.subplots(figsize=(12, 12))
+
+        for j in range(81):
+            x = r_nn_rr.iloc[:, j]
+            y = neighbors["nn_rr"]["nn_idx"].iloc[:, j]
+            ax.scatter(x, y)
+
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        ax.set_title("Scatter Plot of nn_rr Result")
+        plt.show()
+
+        r_nn_qr = pd.read_csv("../Tests/r_nn_qr.csv", index_col=0, header=0)
+        r_nn_qr = r_nn_qr.apply(pd.to_numeric)
+
+        fig, ax = plt.subplots(figsize=(12, 12))
+
+        for j in range(80):
+            x = r_nn_qr.iloc[:, j]
+            y = neighbors["nn_qr"]["nn_idx"].iloc[:, j]
+            ax.scatter(x, y)
+
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        ax.set_title("Scatter Plot of nn_qr Result")
+        plt.show()
+
+        r_nn_rq = pd.read_csv("../Tests/r_nn_rq.csv", index_col=0, header=0)
+        r_nn_rq = r_nn_rq.apply(pd.to_numeric)
+
+        fig, ax = plt.subplots(figsize=(12, 12))
+
+        for j in range(80):
+            x = r_nn_rq.iloc[:, j]
+            y = neighbors["nn_rq"]["nn_idx"].iloc[:, j]
+            ax.scatter(x, y)
+
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        ax.set_title("Scatter Plot of nn_rq Result")
+        plt.show()
+
+
+
+
 
