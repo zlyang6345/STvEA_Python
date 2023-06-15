@@ -3,15 +3,16 @@ import scipy.sparse as sp
 import warnings
 
 from joblib.numpy_pickle_utils import xrange
-
-
-#import pdb
+# Author: Michael Kane and B. W. Lewis
+# https://github.com/bwlewis/irlbpy/blob/master/irlb/irlb.py
+# import pdb
 
 # Matrix-vector product wrapper
 # A is a numpy 2d array or matrix, or a scipy matrix or sparse matrix.
 # x is a numpy vector only.
 # Compute A.dot(x) if t is False,
 #         A.transpose().dot(x)  otherwise.
+
 def mult(A,x,t=False):
   if(sp.issparse(A)):
     m = A.shape[0]

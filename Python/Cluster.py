@@ -8,8 +8,6 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, fcluster
-import networkx as nx
-import community as community_louvain
 from sklearn.neighbors import NearestNeighbors
 from igraph import Graph
 

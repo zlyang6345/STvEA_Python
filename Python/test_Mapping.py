@@ -2,6 +2,7 @@ from unittest import TestCase
 import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
+import seaborn as sns
 
 from Python import STvEA, DataProcessor, Mapping
 
@@ -67,7 +68,7 @@ class TestMapping(TestCase):
         r_cca_result = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
         r_cca_result = r_cca_result.apply(pd.to_numeric)
         cite_count = 1000
-        neighbors = Mapping.Mapping().find_nn_rna(ref_emb = r_cca_result.iloc[:cite_count, :],
+        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=r_cca_result.iloc[:cite_count, :],
                                                   query_emb=r_cca_result.iloc[cite_count:, :],
                                                   rna_mat=stvea.cite_latent,
                                                   k=80)
@@ -85,7 +86,6 @@ class TestMapping(TestCase):
         ax.set_ylabel("Python")
         ax.set_title("Scatter Plot of nn_qq Result")
         plt.show()
-
 
         r_nn_rr = pd.read_csv("../Tests/r_nn_rr.csv", index_col=0, header=0)
         r_nn_rr = r_nn_rr.apply(pd.to_numeric)
@@ -131,7 +131,47 @@ class TestMapping(TestCase):
         ax.set_title("Scatter Plot of nn_rq Result")
         plt.show()
 
+    def test_find_anchor_pairs(sefl):
 
+        nn_qq = pd.read_csv("../Tests/r_nn_qq.csv", index_col=0, header=0).astype("uint32")
+        nn_qq_idx = nn_qq.apply(lambda x: x-1)
+        nn_qq = {
+            "nn_idx": nn_qq_idx
+        }
 
+        nn_rr = pd.read_csv("../Tests/r_nn_rr.csv", index_col=0, header=0).astype("uint32")
+        nn_rr_idx = nn_rr.apply(lambda x: x-1)
+        nn_rr = {
+            "nn_idx": nn_rr_idx
+        }
+
+        nn_qr = pd.read_csv("../Tests/r_nn_qr.csv", index_col=0, header=0).astype("uint32")
+        nn_qr_idx = nn_qr.apply(lambda x: x-1)
+        nn_qr = {
+            "nn_idx": nn_qr_idx
+        }
+
+        nn_rq = pd.read_csv("../Tests/r_nn_rq.csv", index_col=0, header=0).astype("uint32")
+        nn_rq_idx = nn_rq.apply(lambda x: x-1)
+        nn_rq = {
+            "nn_idx": nn_rq_idx
+        }
+
+        neighbors = {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq}
+
+        python_anchors = Mapping.Mapping().find_anchor_pairs(neighbors, k_anchor=20)
+        r_anchors = pd.read_csv("../Tests/anchors.csv", index_col=0, header=0).astype("uint32")
+
+        plt.figure(figsize=(24, 12))
+
+        plt.subplot(1, 2, 1)
+        sns.scatterplot(data=python_anchors, x="cellr", y="cellq", hue="score", legend=False)
+        plt.title("Scatter Plot of Python Anchor Result")
+
+        plt.subplot(1, 2, 2)
+        sns.scatterplot(data=r_anchors, x="cellr", y="cellq", hue="score", legend=False)
+        plt.title("Scatter Plot of R Anchor Result")
+
+        plt.show()
 
 
