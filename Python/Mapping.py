@@ -14,6 +14,8 @@ from scipy.spatial.distance import cdist
 from scipy.stats import pearsonr
 from scipy.spatial import KDTree
 from scipy.stats import pearsonr
+from scipy.sparse import csr_matrix
+
 
 class Mapping:
     def __init__(self):
@@ -29,7 +31,6 @@ class Mapping:
             # standardize each cell
             object1 = object1.apply(lambda col: (col - np.mean(col)) / np.std(col, ddof=1), axis=0)
             object2 = object2.apply(lambda col: (col - np.mean(col)) / np.std(col, ddof=1), axis=0)
-
 
         mat3 = np.dot(object1.T, object2)
 
@@ -52,7 +53,7 @@ class Mapping:
         # find common proteins
         common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
 
-        if(len(common_protein) < 2):
+        if (len(common_protein) < 2):
             # for STvEA to properly transfer value from CODEX to CITE.
             # enough proteins are required.
             print("Too few common proteins between CODEX proteins and CITE-seq proteins")
@@ -118,7 +119,6 @@ class Mapping:
         anchors = pd.DataFrame(anchors).astype("uint32")
         return anchors
 
-
     @staticmethod
     def find_nn_rna(ref_emb, query_emb, rna_mat, cite_index=1, k=300, eps=0):
         """
@@ -182,7 +182,6 @@ class Mapping:
         neighbors = pd.DataFrame(index=range(len(query)), columns=range(k), dtype='uint32')
         distances = pd.DataFrame(index=range(len(query)), columns=range(k), dtype='float64')
 
-
         # for i in range(len(query)):
         #     row = query.iloc[i, :]
         #     # calculate the Pearson correlation and then convert it into dissimilarity
@@ -200,18 +199,62 @@ class Mapping:
         # cor_dist_df = query.apply(lambda row: data.apply(lambda inner_row: 1 - pearsonr(row, inner_row)[0], axis=1), axis=1)
         # 5 min
 
-        cor_dist_df = query.apply(lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1), axis=1)
+        cor_dist_df = query.apply(
+            lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1), axis=1)
         # 30 sec
 
         # get indices of k nearest neighbors
         for i in range(len(cor_dist_df)):
             row = cor_dist_df.iloc[i, :]
             idx = row.argsort()[:k]
-            neighbors.iloc[i, ] = idx
-            distances.iloc[i, ] = row[idx]
+            neighbors.iloc[i,] = idx
+            distances.iloc[i,] = row[idx]
 
         # return values
         return {'nn_idx': neighbors, 'nn_dists': distances}
+
+    @staticmethod
+    def filter_anchors(ref_mat, query_mat, anchors, k_filter=200):
+        """
+        This function will keep anchors that preserve original data info.
+        This means that the anchor in CCA space should also be anchors in original dataset.
+        @param ref_mat: a cleaned protein expression dataframe.
+        @param query_mat: a cleaned protein expression dataframe.
+        @param anchors: a dataframe generated in the previous step.
+        @param k_filter: the number of neighbors to find in the original data space.
+        @return: a dataframe of filtered anchors.
+        """
+        print("Filtering Anchors...")
+
+        nn1 = Mapping().cor_nn(data=query_mat, query=ref_mat, k=k_filter)
+        nn2 = Mapping().cor_nn(data=ref_mat, query=query_mat, k=k_filter)
+
+        position1 = [False] * len(anchors)
+        position2 = [False] * len(anchors)
+        i = 0
+        for q, r in zip(anchors['cellq'], anchors['cellr']):
+            position1[i] = nn1['nn_idx'].iloc[r, :].isin([q]).any()
+            position2[i] = nn2['nn_idx'].iloc[q, :].isin([r]).any()
+            i += 1
+
+        anchors = anchors[np.logical_or(position1, position2)]
+
+        print("\tRetained ", len(anchors), " anchors")
+        return anchors
+
+    @staticmethod
+    def construct_nn_mat(nn_idx, offset_i, offset_j, dims):
+        # flatten nn_idx and apply offset
+        j = np.array(nn_idx).T.flatten() + offset_j
+
+        # calculate i with offset
+        i = np.repeat(np.arange(nn_idx.shape[0]) + offset_i, nn_idx.shape[1])
+
+        # create sparse matrix
+        nn_mat = csr_matrix((np.ones_like(i), (i, j)), shape=dims)
+
+        return nn_mat
+
 
 
 
@@ -241,10 +284,8 @@ class Mapping:
         nn_dists_exp = np.exp(nn_list['nn_dists'] / -c)
 
         # row normalize the distance matrix
-        nn_weights = nn_dists_exp.apply(lambda row: row/sum(row), axis=1)
+        nn_weights = nn_dists_exp.apply(lambda row: row / sum(row), axis=1)
 
         # gather entries and coords for the sparse matrix
         sparse_entries = nn_weights.flatten()
         sparse_coords = np.asarray(nn_idx)
-
-
