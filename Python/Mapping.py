@@ -1,20 +1,11 @@
 import warnings
 
 import pandas as pd
-from scipy.sparse.linalg import svds
-from sklearn.cross_decomposition import CCA
-from sklearn.preprocessing import StandardScaler, scale, normalize
-from sklearn.preprocessing import StandardScaler
 import numpy as np
 from Python.irlb import irlb
-from sklearn.preprocessing import StandardScaler
-from numpy.linalg import norm
-from scipy.sparse.linalg import svds
-from scipy.spatial.distance import cdist
-from scipy.stats import pearsonr
 from scipy.spatial import KDTree
-from scipy.stats import pearsonr
 from scipy.sparse import csr_matrix
+from scipy.sparse import coo_matrix
 
 
 class Mapping:
@@ -211,7 +202,7 @@ class Mapping:
             distances.iloc[i,] = row[idx]
 
         # return values
-        return {'nn_idx': neighbors, 'nn_dists': distances}
+        return {'nn_idx': neighbors.astype("uint32"), 'nn_dists': distances}
 
     @staticmethod
     def filter_anchors(ref_mat, query_mat, anchors, k_filter=200):
@@ -255,8 +246,64 @@ class Mapping:
 
         return nn_mat
 
+    @staticmethod
+    def score_anchors(neighbors, anchors, num_cells_ref, num_cells_query, k_score=30):
 
+        # Convert anchor data frame
+        anchor_df = pd.DataFrame(anchors)
+        anchor_df['cellq'] += num_cells_ref
 
+        # Determine maximum k value
+        min_nn = min(
+            neighbors['nn_rr']['nn_idx'].shape[1],
+            neighbors['nn_rq']['nn_idx'].shape[1],
+            neighbors['nn_qr']['nn_idx'].shape[1],
+            neighbors['nn_qq']['nn_idx'].shape[1]
+        )
+
+        if k_score > min_nn:
+            print(f'Warning: Requested k.score = {k_score}, only {min_nn} in dataset')
+            k_score = min_nn
+
+        total_cells = num_cells_ref + num_cells_query
+
+        # Construct nearest neighbour matrices
+        nn_m1 = Mapping().construct_nn_mat(neighbors['nn_rr']['nn_idx'].iloc[:, :k_score],
+                                           0, 0, (total_cells, total_cells))
+        nn_m2 = Mapping().construct_nn_mat(neighbors['nn_rq']['nn_idx'].iloc[:, :k_score],
+                                           0, num_cells_ref, (total_cells, total_cells))
+        nn_m3 = Mapping().construct_nn_mat(neighbors['nn_qr']['nn_idx'].iloc[:, :k_score],
+                                           num_cells_ref, 0, (total_cells, total_cells))
+        nn_m4 = Mapping().construct_nn_mat(neighbors['nn_qq']['nn_idx'].iloc[:, :k_score],
+                                           num_cells_ref, num_cells_ref, (total_cells, total_cells))
+
+        # Combine all matrices
+        k_matrix = nn_m1 + nn_m2 + nn_m3 + nn_m4
+
+        # Create sparse matrix with anchor cells
+        anchor_only = coo_matrix((np.ones(len(anchor_df)), (anchor_df.iloc[:, 0], anchor_df.iloc[:, 1])),
+                                 shape=(total_cells, total_cells))
+
+        # Calculate Jaccard similarity
+        jaccard_dist = k_matrix.dot(k_matrix.transpose())
+
+        # Element-wise multiplication
+        anchor_matrix = jaccard_dist.multiply(anchor_only).tocoo()
+
+        # Create new anchor matrix
+        anchor_new = pd.DataFrame({
+            'cellr': anchor_matrix.row,
+            'cellq': anchor_matrix.col,
+            'score': anchor_matrix.data
+        })
+
+        # Rescale scores
+        anchor_new['cellq'] -= num_cells_ref
+        max_score,  min_score= anchor_new['score'].quantile((0.9, 0.01))
+        anchor_new['score'] = (anchor_new['score'] - min_score) / (max_score - min_score)
+        anchor_new['score'] = anchor_new['score'].clip(0, 1)
+
+        return anchor_new.values
 
     @staticmethod
     def transfer_matrix(from_dataset,
