@@ -235,8 +235,8 @@ class Mapping:
 
     @staticmethod
     def construct_nn_mat(nn_idx, offset_i, offset_j, dims):
-        # flatten nn_idx and apply offset
-        j = np.array(nn_idx).T.flatten() + offset_j
+        # row-wise flatten nn_idx and apply offset
+        j = np.array(nn_idx).flatten() + offset_j
 
         # calculate i with offset
         i = np.repeat(np.arange(nn_idx.shape[0]) + offset_i, nn_idx.shape[1])
@@ -303,7 +303,7 @@ class Mapping:
         anchor_new['score'] = (anchor_new['score'] - min_score) / (max_score - min_score)
         anchor_new['score'] = anchor_new['score'].clip(0, 1)
 
-        return anchor_new.values
+        return anchor_new
 
     @staticmethod
     def transfer_matrix(from_dataset,
