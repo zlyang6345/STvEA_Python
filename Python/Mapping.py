@@ -235,6 +235,14 @@ class Mapping:
 
     @staticmethod
     def construct_nn_mat(nn_idx, offset_i, offset_j, dims):
+        """
+        This is a helper function to construct matrix.
+        @param nn_idx: a matrix whose row represents cells and columns represent nearest neighbors to each cell.
+        @param offset_i: offset_i will be added to each row index cell.
+        @param offset_j: offset_j will be added to each nearest neighbor.
+        @param dims: the dimension of the matrix to be created.
+        @return: the constructed matrix.
+        """
         # row-wise flatten nn_idx and apply offset
         j = np.array(nn_idx).flatten() + offset_j
 
@@ -248,7 +256,23 @@ class Mapping:
 
     @staticmethod
     def score_anchors(neighbors, anchors, num_cells_ref, num_cells_query, k_score=30):
+        """
+        This function will calculate a score based on number of shared neighbors for each anchor.
 
+        s_j1j2=|N_CITEseq_j1 ∩ N_CITEseq_j2| + |N_CODEX_j1 ∩ N_CODEX_j2|
+
+        N_CITEseq_j1 is the set of nearest CITEseq cells to cell j1 in the mRNA latent space.
+        N_CITEseq_j2 is the set of nearest CITEseq cells to cell j2 in the CCA space
+        N_CODEX_j1 is the set of nearest CODEX cells to j1 in the CCA space.
+        N_CODEX_j2 is the set of nearest CODEX cells to j2 in the CCA space.
+
+        @param neighbors:
+        @param anchors:
+        @param num_cells_ref:
+        @param num_cells_query:
+        @param k_score:
+        @return:
+        """
         # Convert anchor data frame
         anchor_df = pd.DataFrame(anchors)
         anchor_df['cellq'] += num_cells_ref
@@ -336,3 +360,36 @@ class Mapping:
         # gather entries and coords for the sparse matrix
         sparse_entries = nn_weights.flatten()
         sparse_coords = np.asarray(nn_idx)
+
+    @staticmethod
+    def find_integration_matrix(ref_mat, query_mat, neighbors, anchors):
+        """
+        Calculate anchor vectors between reference and query dataset.
+
+        Parameters:
+        ref_mat (pd.DataFrame): a (cell x feature) protein expression matrix
+        query_mat (pd.DataFrame): a (cell x feature) protein expression matrix to be corrected
+        neighbors (dict): a list of neighbors
+        anchors (pd.DataFrame): a list of anchors (MNN) as from FindAnchorPairs
+
+        Returns:
+        pd.DataFrame: integration matrix
+        """
+
+        print("Finding integration vectors")
+
+        # Extract cell expression proteins
+        data_use_r = ref_mat.iloc[anchors["cellr"]].reset_index(drop=True)
+        data_use_q = query_mat.iloc[anchors["cellq"]].reset_index(drop=True)
+
+        # Subtract the data frames to obtain the integration matrix
+        integration_matrix = data_use_q.subtract(data_use_r)
+
+        # Set the row names (index) to anchors_q
+        integration_matrix.index = neighbors["cellsq"][anchors["cellq"]]
+
+        return integration_matrix
+
+
+
+

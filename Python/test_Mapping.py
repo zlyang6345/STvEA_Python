@@ -222,7 +222,9 @@ class TestMapping(TestCase):
         r_scored_anchors = r_scored_anchors.sort_values(by=["cellr", "cellq"]).reset_index(drop=True)
         python_scored_anchors = python_scored_anchors.sort_values(by=["cellr", "cellq"]).reset_index(drop=True)
         concat_results = pd.concat([r_scored_anchors, python_scored_anchors], axis=1)
-        assert(concat_results.apply(lambda row: row[0] == row[3] and row[1] == row[4] and math.isclose(row[2], row[5], rel_tol=0.0001), axis=1).all())
+        assert (concat_results.apply(
+            lambda row: row[0] == row[3] and row[1] == row[4] and math.isclose(row[2], row[5], rel_tol=0.0001),
+            axis=1).all())
 
     def test_construct_nn_mat(self):
         from numpy.testing import assert_array_equal
@@ -242,3 +244,70 @@ class TestMapping(TestCase):
                            [0, 1, 1, 1],
                            [0, 0, 0, 0]])
         assert_array_equal(nn_mat, target)
+
+    def test_find_integration_matrix(self):
+
+        filtered_anchors = pd.read_csv("../Tests/filteredAnchors.csv", index_col=0, header=0).astype("uint32")
+        filtered_anchors = filtered_anchors.apply(lambda x: x - 1)
+
+        nn_qq = pd.read_csv("../Tests/r_nn_qq.csv", index_col=0, header=0).astype("uint32")
+        nn_qq_idx = nn_qq.apply(lambda x: x - 1)
+        nn_qq = {
+            "nn_idx": nn_qq_idx
+        }
+
+        nn_rr = pd.read_csv("../Tests/r_nn_rr.csv", index_col=0, header=0).astype("uint32")
+        nn_rr_idx = nn_rr.apply(lambda x: x - 1)
+        nn_rr = {
+            "nn_idx": nn_rr_idx
+        }
+
+        nn_qr = pd.read_csv("../Tests/r_nn_qr.csv", index_col=0, header=0).astype("uint32")
+        nn_qr_idx = nn_qr.apply(lambda x: x - 1)
+        nn_qr = {
+            "nn_idx": nn_qr_idx
+        }
+
+        nn_rq = pd.read_csv("../Tests/r_nn_rq.csv", index_col=0, header=0).astype("uint32")
+        nn_rq_idx = nn_rq.apply(lambda x: x - 1)
+        nn_rq = {
+            "nn_idx": nn_rq_idx
+        }
+
+        r_cite_clean = pd.read_csv("../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
+        cellsr = r_cite_clean.index
+
+        r_codex_clean = pd.read_csv("../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
+        cellsq = r_codex_clean.index
+
+        neighbors = {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq, "cellsr": cellsr, "cellsq": cellsq}
+
+        ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+
+        r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
+                                       dtype={"cellr": int, "cellq": int, "score": float})
+        r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
+
+        python_integration_matrix = Mapping.Mapping().find_integration_matrix(ref_mat, query_mat, neighbors, r_scored_anchors)
+
+        r_integration_matrix = pd.read_csv("../Tests/r_integration_matrix.csv", header=0, index_col=0)
+
+        fig, ax = plt.subplots(figsize=(12, 12))
+        for i, column in enumerate(python_integration_matrix.columns):
+            x = r_integration_matrix[column]
+            y= python_integration_matrix[column]
+            ax.scatter(x, y, label=column)
+
+        ax.set_title("Integration Matrix Result")
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        plt.legend()
+        plt.show()
+
+
+
+
+
+
+
