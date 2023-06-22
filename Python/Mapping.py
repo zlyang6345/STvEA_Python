@@ -1,3 +1,4 @@
+import math
 import warnings
 
 import pandas as pd
@@ -389,6 +390,44 @@ class Mapping:
         integration_matrix.index = neighbors["cellsq"][anchors["cellq"]]
 
         return integration_matrix
+
+    @staticmethod
+    def find_weights(neighbors, anchors, query_mat, k_weight=300, sd_weight=1):
+
+        print("Finding anchors weights.")
+
+        cellsr = neighbors["cellsr"]
+        cellsq = neighbors["cellsq"]
+        anchor_cellsq = anchors["cellq"]
+
+        kna_query = Mapping().cor_nn(data=query_mat.iloc[anchor_cellsq, :], query=query_mat, k=k_weight+1)
+
+        nn_dists = kna_query["nn_dists"].iloc[:, 1:]
+        nn_dists.index = cellsq
+        nn_idx = kna_query["nn_idx"].iloc[:, 1:]
+        nn_idx.index = cellsq
+        nn_dists = 1 - nn_dists.div(nn_dists.iloc[:, k_weight-1], axis=0)
+
+        dists_weights = pd.DataFrame(data=0, index=cellsq, columns=range(len(anchor_cellsq)))
+
+        def helper(row, index):
+            idx = nn_idx.loc[index]
+            row[idx] = nn_dists.loc[index]
+            return row
+
+        dists_weights = dists_weights.apply(lambda row: helper(row, row.name), axis=1)
+
+        scores = pd.Series(anchors["score"],  index=dists_weights.columns)
+
+        weights = dists_weights.mul(scores, axis=0)
+
+        weights = weights.apply(lambda x: 1 - math.exp(-1 * x / (2 * (1 / sd_weight)) ** 2))
+
+        weight = weights.div(weights.sum(axis=1), axis=0)
+
+        return weight
+
+
 
 
 

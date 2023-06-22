@@ -1,0 +1,56 @@
+To select columns of a DataFrame in pandas, you can use square brackets ([]) or the loc or iloc indexers. Here are examples of each method:
+
+Using square brackets:
+python
+Copy code
+# Assuming your DataFrame is called 'df'
+selected_columns = df[['column1', 'column2', 'column3']]
+Replace 'column1', 'column2', 'column3', and so on with the actual column names you want to select. This method returns a new DataFrame with the selected columns.
+
+Using loc indexer:
+python
+Copy code
+# Assuming your DataFrame is called 'df'
+selected_columns = df.loc[:, ['column1', 'column2', 'column3']]
+Replace 'column1', 'column2', 'column3', and so on with the actual column names you want to select. The : before the comma indicates that you want to select all rows. This method also returns a new DataFrame with the selected columns.
+
+Using iloc indexer:
+python
+Copy code
+# Assuming your DataFrame is called 'df'
+selected_columns = df.iloc[:, [0, 1, 2]]
+Replace 0, 1, 2, and so on with the actual integer index positions of the columns you want to select. The : before the comma indicates that you want to select all rows. This method returns a new DataFrame with the selected columns.
+
+Choose the method that best suits your needs based on whether you want to use column names or index positions for selection.
+
+To select rows of a DataFrame in pandas, you can use various methods such as slicing, boolean indexing, or the `loc` or `iloc` indexers. Here are examples of each method:
+
+1. Using slicing:
+```python
+# Assuming your DataFrame is called 'df'
+selected_rows = df[start_index:end_index]
+```
+Replace `start_index` and `end_index` with the actual integer index positions or labels of the rows you want to select. The `start_index` is inclusive, meaning the row at that position will be included, while the `end_index` is exclusive, meaning the row at that position will not be included. This method returns a new DataFrame with the selected rows.
+
+2. Using boolean indexing:
+```python
+# Assuming your DataFrame is called 'df' and you have a boolean condition
+selected_rows = df[boolean_condition]
+```
+Replace `boolean_condition` with a valid boolean condition that evaluates to `True` for the rows you want to select. This method returns a new DataFrame with the rows that satisfy the given condition.
+
+3. Using the `loc` indexer:
+```python
+# Assuming your DataFrame is called 'df'
+selected_rows = df.loc[row_labels]
+```
+Replace `row_labels` with a list of the actual labels of the rows you want to select. This method returns a new DataFrame with the selected rows.
+
+4. Using the `iloc` indexer:
+```python
+# Assuming your DataFrame is called 'df'
+selected_rows = df.iloc[row_index_positions]
+```
+Replace `row_index_positions` with a list of the actual integer index positions of the rows you want to select. This method returns a new DataFrame with the selected rows.
+
+Choose the method that best suits your needs based on whether you want to use index positions, labels, or boolean conditions for row selection.

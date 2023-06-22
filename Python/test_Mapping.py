@@ -289,14 +289,15 @@ class TestMapping(TestCase):
                                        dtype={"cellr": int, "cellq": int, "score": float})
         r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
 
-        python_integration_matrix = Mapping.Mapping().find_integration_matrix(ref_mat, query_mat, neighbors, r_scored_anchors)
+        python_integration_matrix = Mapping.Mapping().find_integration_matrix(ref_mat, query_mat, neighbors,
+                                                                              r_scored_anchors)
 
         r_integration_matrix = pd.read_csv("../Tests/r_integration_matrix.csv", header=0, index_col=0)
 
         fig, ax = plt.subplots(figsize=(12, 12))
         for i, column in enumerate(python_integration_matrix.columns):
             x = r_integration_matrix[column]
-            y= python_integration_matrix[column]
+            y = python_integration_matrix[column]
             ax.scatter(x, y, label=column)
 
         ax.set_title("Integration Matrix Result")
@@ -305,8 +306,23 @@ class TestMapping(TestCase):
         plt.legend()
         plt.show()
 
+    def test_find_weights(self):
+        r_cite_clean = pd.read_csv("../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
+        cellsr = r_cite_clean.index
 
+        r_codex_clean = pd.read_csv("../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
+        cellsq = r_codex_clean.index
 
+        neighbors = {"cellsr": cellsr, "cellsq": cellsq}
+
+        ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+
+        r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
+                                       dtype={"cellr": int, "cellq": int, "score": float})
+        r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
+
+        weights = Mapping.Mapping().find_weights(neighbors, r_scored_anchors, query_mat, 100)
 
 
 
