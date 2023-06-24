@@ -315,14 +315,68 @@ class TestMapping(TestCase):
 
         neighbors = {"cellsr": cellsr, "cellsq": cellsq}
 
-        ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        # ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
         query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
 
         r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
                                        dtype={"cellr": int, "cellq": int, "score": float})
         r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
 
-        weights = Mapping.Mapping().find_weights(neighbors, r_scored_anchors, query_mat, 100)
+        python_weights = Mapping.Mapping().find_weights(neighbors, r_scored_anchors, query_mat, 100).transpose()
+
+        r_weights = pd.read_csv("../Tests/r_weights.csv", index_col=0, header=0).astype("float64")
+
+        fig, ax = plt.subplots(figsize=(12, 12))
+        for i, column in enumerate(python_weights.columns):
+            x = r_weights.iloc[:, i]
+            y = python_weights.iloc[:, i]
+            ax.scatter(x, y, label=column)
+
+        ax.set_title("Find Weights Result")
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        plt.show()
+
+    def test_transform_data_matrix(self):
+        # use python's python_weights
+        # r_cite_clean = pd.read_csv("../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
+        # cellsr = r_cite_clean.index
+        #
+        # r_codex_clean = pd.read_csv("../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
+        # cellsq = r_codex_clean.index
+        #
+        # neighbors = {"cellsr": cellsr, "cellsq": cellsq}
+        #
+        # # ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        # query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        #
+        # r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
+        #                                dtype={"cellr": int, "cellq": int, "score": float})
+        # r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
+        #
+        # python_weights = Mapping.Mapping().find_weights(neighbors, r_scored_anchors, query_mat, 100)
+        #
+        #------------------
+
+        # use pure R data
+
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        r_integration_matrix = pd.read_csv("../Tests/r_integration_matrix.csv", header=0, index_col=0).astype("float64")
+        r_weights = pd.read_csv("../Tests/r_weights.csv", index_col=0, header=0).astype("float64").transpose()
+
+        python_corrected = Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, r_weights)
+        r_corrected = pd.read_csv("../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
+
+        fig, ax = plt.subplots(figsize=(12, 12))
+        for i, index in enumerate(python_corrected.index):
+            x = r_corrected.iloc[i, :]
+            y = python_corrected.iloc[i, :]
+            ax.scatter(x, y, label=index)
+
+        ax.set_title("Corrected Data Comparison")
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        plt.show()
 
 
 

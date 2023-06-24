@@ -393,40 +393,79 @@ class Mapping:
 
     @staticmethod
     def find_weights(neighbors, anchors, query_mat, k_weight=300, sd_weight=1):
-
+        """
+        This function will find weights for anchors.
+        This weight is based on the distance of query cell and anchor distance.
+        @param neighbors: a dictionary generated in previous step.
+        @param anchors: a dataframe that includes three columns (cellq, cellr, and score).
+        @param query_mat: a dataframe whose row represents query cell and whose column represents protein.
+        @param k_weight: the number of nearest anchors to use in correction.
+        @param sd_weight: standard deviation of the Gaussian kernel.
+        @return: a dataframe whose row represents query cell and column represents anchors.
+        """
+        # print a message.
         print("Finding anchors weights.")
 
+        # initialize some variables
         cellsr = neighbors["cellsr"]
         cellsq = neighbors["cellsq"]
         anchor_cellsq = anchors["cellq"]
 
-        kna_query = Mapping().cor_nn(data=query_mat.iloc[anchor_cellsq, :], query=query_mat, k=k_weight+1)
+        # find nearest anchors to each query cell
+        kna_query = Mapping().cor_nn(data=query_mat.iloc[anchor_cellsq, :], query=query_mat, k=k_weight)
 
-        nn_dists = kna_query["nn_dists"].iloc[:, 1:]
+        nn_dists = kna_query["nn_dists"]
         nn_dists.index = cellsq
-        nn_idx = kna_query["nn_idx"].iloc[:, 1:]
+        nn_idx = kna_query["nn_idx"]
         nn_idx.index = cellsq
+
+        # divide each entry by that cell's kth nearest neighbor's distance.
         nn_dists = 1 - nn_dists.div(nn_dists.iloc[:, k_weight-1], axis=0)
 
+        # initialize a dataframe.
         dists_weights = pd.DataFrame(data=0, index=cellsq, columns=range(len(anchor_cellsq)))
 
+        # define a helper function
         def helper(row, index):
             idx = nn_idx.loc[index]
             row[idx] = nn_dists.loc[index]
             return row
 
+        # apply the helper function to each row.
+        # each row in the dataset represents a query cell.
+        # each column represents the anchor cell.
         dists_weights = dists_weights.apply(lambda row: helper(row, row.name), axis=1)
 
-        scores = pd.Series(anchors["score"],  index=dists_weights.columns)
+        # create a series for anchor scores.
+        scores = pd.Series(anchors["score"])
+        scores.index = dists_weights.columns
 
-        weights = dists_weights.mul(scores, axis=0)
+        # multiply each row of the dataset with its corresponding score.
+        weights = dists_weights.mul(scores, axis=1)
 
-        weights = weights.apply(lambda x: 1 - math.exp(-1 * x / (2 * (1 / sd_weight)) ** 2))
+        # calculate the Gaussian kernel function.
+        weights = weights.apply(lambda x: 1 - np.exp(-1 * x / (2 * (1 / sd_weight)) ** 2))
 
-        weight = weights.div(weights.sum(axis=1), axis=0)
+        # normalize by row
+        weights = weights.div(weights.sum(axis=1), axis=0)
 
-        return weight
+        return weights
 
+    @staticmethod
+    def transform_data_matrix(query_mat, integration_matrix, weights):
+        """
+        This function will generate the corrected protein expression matrix.
+        @param query_mat: a (cell x feature) protein expression matrix to be corrected.
+        @param integration_matrix: matrix of anchor vectors (output of find_integration_matrix).
+        @param weights: weights of the anchors of each query cell.
+        @return: a corrected query cell protein expression matrix.
+        """
+        print("Integrating data")
+        integration_matrix.index = weights.columns
+        bv = weights.dot(integration_matrix)
+        bv.index = query_mat.index
+        integrated = query_mat - bv
+        return integrated
 
 
 
