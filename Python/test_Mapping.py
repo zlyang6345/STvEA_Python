@@ -339,32 +339,33 @@ class TestMapping(TestCase):
 
     def test_transform_data_matrix(self):
         # use python's python_weights
-        # r_cite_clean = pd.read_csv("../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
-        # cellsr = r_cite_clean.index
-        #
-        # r_codex_clean = pd.read_csv("../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
-        # cellsq = r_codex_clean.index
-        #
-        # neighbors = {"cellsr": cellsr, "cellsq": cellsq}
-        #
-        # # ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
-        # query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
-        #
-        # r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
-        #                                dtype={"cellr": int, "cellq": int, "score": float})
-        # r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
-        #
-        # python_weights = Mapping.Mapping().find_weights(neighbors, r_scored_anchors, query_mat, 100)
-        #
+        r_cite_clean = pd.read_csv("../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
+        cellsr = r_cite_clean.index
+
+        r_codex_clean = pd.read_csv("../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
+        cellsq = r_codex_clean.index
+
+        neighbors = {"cellsr": cellsr, "cellsq": cellsq}
+
+        # ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+
+        r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
+                                       dtype={"cellr": int, "cellq": int, "score": float})
+        r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
+
+        python_weights = Mapping.Mapping().find_weights(neighbors, r_scored_anchors, query_mat, 100)
+
         #------------------
 
         # use pure R data
 
         query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
         r_integration_matrix = pd.read_csv("../Tests/r_integration_matrix.csv", header=0, index_col=0).astype("float64")
-        r_weights = pd.read_csv("../Tests/r_weights.csv", index_col=0, header=0).astype("float64").transpose()
+        # r_weights = pd.read_csv("../Tests/r_weights.csv", index_col=0, header=0).astype("float64").transpose()
+        # python_corrected = Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, r_weights)
 
-        python_corrected = Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, r_weights)
+        python_corrected = Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, python_weights)
         r_corrected = pd.read_csv("../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
         fig, ax = plt.subplots(figsize=(12, 12))
@@ -373,10 +374,124 @@ class TestMapping(TestCase):
             y = python_corrected.iloc[i, :]
             ax.scatter(x, y, label=index)
 
-        ax.set_title("Corrected Data Comparison")
+        ax.set_title("Corrected Data Comparison （test_transform_data_matrix）")
         ax.set_xlabel("R")
         ax.set_ylabel("Python")
         plt.show()
+
+    def test_of_mapping2(self):
+        # this test will use python's own cca common space data.
+        stvea = STvEA.STvEA()
+        data_processor = DataProcessor.DataProcessor()
+        data_processor.read(stvea)
+
+        stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+
+        common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
+        codex_subset = stvea.codex_protein.loc[:, common_protein]
+        cite_subset = stvea.cite_protein.loc[:, common_protein]
+
+        cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
+        # cca_data = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
+
+        cite_count = cite_subset.shape[0]
+        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
+                                                  query_emb=cca_data.iloc[cite_count:, :],
+                                                  rna_mat=stvea.cite_latent,
+                                                  k=80)
+
+        anchors = Mapping.Mapping().find_anchor_pairs(neighbors, 20)
+
+        anchors = Mapping.Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
+
+        anchors = Mapping.Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
+                                                  len(neighbors["nn_qq"]["nn_idx"]), 80)
+
+        integration_matrix = Mapping.Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
+
+        weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
+
+        python_corrected = Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights)
+
+        r_corrected = pd.read_csv("../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
+
+        fig, ax = plt.subplots(figsize=(12, 12))
+        for i, index in enumerate(python_corrected.index):
+            x = r_corrected.iloc[i, :]
+            y = python_corrected.iloc[i, :]
+            ax.scatter(x, y, label=index)
+
+        ax.set_title("Corrected Data Comparison (Test of Mapping 2)")
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        plt.show()
+
+    def test_of_mapping1(self):
+        # this test will use R's generated CCA common space
+        stvea = STvEA.STvEA()
+        data_processor = DataProcessor.DataProcessor()
+        data_processor.read(stvea)
+
+        stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+
+        common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
+        codex_subset = stvea.codex_protein.loc[:, common_protein]
+        cite_subset = stvea.cite_protein.loc[:, common_protein]
+
+        # cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
+        cca_data = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
+
+
+        cite_count = cite_subset.shape[0]
+        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
+                                                  query_emb=cca_data.iloc[cite_count:, :],
+                                                  rna_mat=stvea.cite_latent,
+                                                  k=80)
+
+        anchors = Mapping.Mapping().find_anchor_pairs(neighbors, 20)
+
+        anchors = Mapping.Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
+
+        anchors = Mapping.Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
+                                                         len(neighbors["nn_qq"]["nn_idx"]), 80)
+
+        integration_matrix = Mapping.Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
+
+        weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
+
+        python_corrected = Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights)
+
+        r_corrected = pd.read_csv("../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
+
+        fig, ax = plt.subplots(figsize=(12, 12))
+        for i, index in enumerate(python_corrected.index):
+            x = r_corrected.iloc[i, :]
+            y = python_corrected.iloc[i, :]
+            ax.scatter(x, y, label=index)
+
+        ax.set_title("Corrected Data Comparison (Test of Mapping 1)")
+        ax.set_xlabel("R")
+        ax.set_ylabel("Python")
+        plt.show()
+
+
+    def test_transfer_matrix(self):
+        from_dataset = np.array([[1, 2, 3],
+                                 [10, 9, 7],
+                                 [1, 2, 4]])
+
+        to_dataset = np.array([[1, 2, 3],
+                                 [10, 9, 7],
+                                 [1, 2, 4]])
+
+        transfer_matrix = Mapping.Mapping().transfer_matrix(from_dataset, to_dataset, 3, 0.2).toarray()
+
+        row_sum = transfer_matrix.sum(axis=1)
+
+        assert (np.all(np.abs(row_sum - 1)) < 1e-8)
+
 
 
 

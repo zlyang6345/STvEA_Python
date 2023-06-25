@@ -3,6 +3,8 @@ import warnings
 
 import pandas as pd
 import numpy as np
+from scipy.sparse.linalg import svds
+
 from Python.irlb import irlb
 from scipy.spatial import KDTree
 from scipy.sparse import csr_matrix
@@ -14,7 +16,7 @@ class Mapping:
         pass
 
     @staticmethod
-    def run_cca(object1, object2, standardize=True, num_cc=30):
+    def run_cca(object1, object2, standardize=True, num_cc=30, option=1):
 
         cells1 = object1.columns
         cells2 = object2.columns
@@ -26,10 +28,20 @@ class Mapping:
 
         mat3 = np.dot(object1.T, object2)
 
-        # u, s, v = svds(mat3, k=num_cc, tol=1e-05)
-        tuple = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000)
-        u = tuple[0]
-        v = tuple[2]
+        if option==1:
+            tuple = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000)
+            u = tuple[0]
+            v = tuple[2]
+
+        else:
+
+            u, s, v = svds(mat3, k=num_cc, tol=1e-05)
+
+            v = v.transpose()
+
+        # tuple = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000)
+        # u = tuple[0]
+        # v = tuple[2]
 
         cca_data = np.concatenate([u, v], axis=0)
 
@@ -327,40 +339,8 @@ class Mapping:
         max_score,  min_score= anchor_new['score'].quantile((0.9, 0.01))
         anchor_new['score'] = (anchor_new['score'] - min_score) / (max_score - min_score)
         anchor_new['score'] = anchor_new['score'].clip(0, 1)
-
+        anchors.sort_values("cellq", ascending=True, inplace=True)
         return anchor_new
-
-    @staticmethod
-    def transfer_matrix(from_dataset,
-                        to_dataset,
-                        k=None,
-                        c=0.1):
-        """
-        This function transfers a matrix from one dataset to another based on the CorNN function.
-        :param from_dataset: A pandas dataframe, usually CITE.
-        :param to_dataset: A pandas dataframe, usually CODEX.
-        :param k: number of nearest neighbors to find.
-        :param c: constant controls the width of the Gaussian kernel.
-        :return: Transferred matrix.
-        """
-
-        if k is None:
-            k = int(np.floor(len(to_dataset) * 0.002))
-
-        # compute query knn from cor_nn
-        # weight each nn based on gaussian kernel of distance
-        # create weighted nn matrix as sparse matrix
-        # return nn matrix
-        nn_list = Mapping().cor_nn(to_dataset, from_dataset, k=k)
-        nn_idx = nn_list['nn_idx']
-        nn_dists_exp = np.exp(nn_list['nn_dists'] / -c)
-
-        # row normalize the distance matrix
-        nn_weights = nn_dists_exp.apply(lambda row: row / sum(row), axis=1)
-
-        # gather entries and coords for the sparse matrix
-        sparse_entries = nn_weights.flatten()
-        sparse_coords = np.asarray(nn_idx)
 
     @staticmethod
     def find_integration_matrix(ref_mat, query_mat, neighbors, anchors):
@@ -466,6 +446,53 @@ class Mapping:
         bv.index = query_mat.index
         integrated = query_mat - bv
         return integrated
+
+    @staticmethod
+    def transfer_matrix(from_dataset,
+                        to_dataset,
+                        k=None,
+                        c=0.1):
+        """
+        This function transfers a matrix from one dataset to another based on the CorNN function.
+        :param from_dataset: A pandas dataframe, usually CITE.
+        :param to_dataset: A pandas dataframe, usually CODEX.
+        :param k: number of nearest neighbors to find.
+        :param c: constant controls the width of the Gaussian kernel.
+        :return: Transferred matrix.
+        """
+
+        if k is None:
+            k = int(np.floor(len(to_dataset) * 0.002))
+
+        # compute query knn from cor_nn
+        # weight each nn based on gaussian kernel of distance
+        # create weighted nn matrix as sparse matrix
+        # return nn matrix
+        nn_list = Mapping().cor_nn(from_dataset, to_dataset, k=k)
+        nn_idx = nn_list['nn_idx']
+        nn_dists_exp = np.exp(nn_list['nn_dists'] / -c)
+
+        # row normalize the distance matrix
+        nn_weights = nn_dists_exp.apply(lambda row: row / sum(row), axis=1)
+
+        # gather entries and coords for the sparse matrix
+        idx_array = nn_idx.to_numpy()
+        weights_array = nn_weights.to_numpy()
+
+        # Flatten arrays and create coordinate pairs
+        rows = np.repeat(np.arange(idx_array.shape[0]), idx_array.shape[1])
+        cols = idx_array.flatten()
+        data = weights_array.flatten()
+
+        # Now, create a sparse matrix
+        transfer_matrix = coo_matrix((data, (rows, cols)))
+
+        # Convert to CSR format for efficient arithmetic and matrix operations
+        transfer_matrix = transfer_matrix.tocsr()
+
+        return transfer_matrix
+
+
 
 
 
