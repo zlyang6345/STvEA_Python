@@ -17,7 +17,16 @@ class Mapping:
 
     @staticmethod
     def run_cca(object1, object2, standardize=True, num_cc=30, option=1):
+        """
+        This function will use CCA to reduce dimensions.
 
+        @param object1: A dataframe whose rows represent cells.
+        @param object2: A dataframe whose rows represent cells.
+        @param standardize: a boolean value. If true, two dataframes would be standardized column-wise.
+        @param num_cc: The number of dimensions after reduction.
+        @param option: a integer value to specify the way to perform SVD. 1 for irlb method. 2 for Scikit-learn svds.
+        @return: a dataframe that combines the two reduced dataframes.
+        """
         cells1 = object1.columns
         cells2 = object2.columns
 
@@ -26,27 +35,22 @@ class Mapping:
             object1 = object1.apply(lambda col: (col - np.mean(col)) / np.std(col, ddof=1), axis=0)
             object2 = object2.apply(lambda col: (col - np.mean(col)) / np.std(col, ddof=1), axis=0)
 
+        # perform the dot production
         mat3 = np.dot(object1.T, object2)
 
-        if option==1:
+        if option == 1:
+            # irlb method
             tuple = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000)
             u = tuple[0]
             v = tuple[2]
-
         else:
-
+            # scikit-learn method
             u, s, v = svds(mat3, k=num_cc, tol=1e-05)
-
             v = v.transpose()
 
-        # tuple = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000)
-        # u = tuple[0]
-        # v = tuple[2]
-
+        # combine the result
         cca_data = np.concatenate([u, v], axis=0)
-
         cca_data = np.array([x if np.sign(x[0]) != -1 else x * -1 for x in cca_data.T]).T
-
         cca_data = pd.DataFrame(cca_data, index=list(cells1) + list(cells2),
                                 columns=["CC" + str(i + 1) for i in range(num_cc)])
 
@@ -204,7 +208,8 @@ class Mapping:
         # 5 min
 
         cor_dist_df = query.apply(
-            lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1), axis=1)
+            lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
+            axis=1)
         # 30 sec
 
         # get indices of k nearest neighbors
@@ -336,7 +341,7 @@ class Mapping:
 
         # Rescale scores
         anchor_new['cellq'] -= num_cells_ref
-        max_score,  min_score= anchor_new['score'].quantile((0.9, 0.01))
+        max_score, min_score = anchor_new['score'].quantile((0.9, 0.01))
         anchor_new['score'] = (anchor_new['score'] - min_score) / (max_score - min_score)
         anchor_new['score'] = anchor_new['score'].clip(0, 1)
         anchors.sort_values("cellq", ascending=True, inplace=True)
@@ -400,7 +405,7 @@ class Mapping:
         nn_idx.index = cellsq
 
         # divide each entry by that cell's kth nearest neighbor's distance.
-        nn_dists = 1 - nn_dists.div(nn_dists.iloc[:, k_weight-1], axis=0)
+        nn_dists = 1 - nn_dists.div(nn_dists.iloc[:, k_weight - 1], axis=0)
 
         # initialize a dataframe.
         dists_weights = pd.DataFrame(data=0, index=cellsq, columns=range(len(anchor_cellsq)))
@@ -491,10 +496,3 @@ class Mapping:
         transfer_matrix = transfer_matrix.tocsr()
 
         return transfer_matrix
-
-
-
-
-
-
-
