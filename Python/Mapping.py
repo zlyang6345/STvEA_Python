@@ -437,9 +437,10 @@ class Mapping:
         return weights
 
     @staticmethod
-    def transform_data_matrix(query_mat, integration_matrix, weights):
+    def transform_data_matrix(query_mat, integration_matrix, weights, stvea):
         """
         This function will generate the corrected protein expression matrix.
+        @param stvea: a STvEA object.
         @param query_mat: a (cell x feature) protein expression matrix to be corrected.
         @param integration_matrix: matrix of anchor vectors (output of find_integration_matrix).
         @param weights: weights of the anchors of each query cell.
@@ -450,17 +451,20 @@ class Mapping:
         bv = weights.dot(integration_matrix)
         bv.index = query_mat.index
         integrated = query_mat - bv
-        return integrated
+        stvea.corrected_cite = integrated
+        return
 
     @staticmethod
     def transfer_matrix(from_dataset,
                         to_dataset,
+                        stvea,
                         k=None,
                         c=0.1):
         """
         This function transfers a matrix from one dataset to another based on the CorNN function.
         :param from_dataset: A pandas dataframe, usually CITE.
         :param to_dataset: A pandas dataframe, usually CODEX.
+        :param stvea: a STvEA object.
         :param k: number of nearest neighbors to find.
         :param c: constant controls the width of the Gaussian kernel.
         :return: Transferred matrix.
@@ -493,6 +497,6 @@ class Mapping:
         transfer_matrix = coo_matrix((data, (rows, cols)))
 
         # Convert to CSR format for efficient arithmetic and matrix operations
-        transfer_matrix = transfer_matrix.tocsr()
+        stvea.transfer_matrix = transfer_matrix.tocsr()
 
-        return transfer_matrix
+        return

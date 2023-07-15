@@ -12,8 +12,6 @@ from sklearn.neighbors import NearestNeighbors
 from igraph import Graph
 
 
-
-
 class Cluster:
 
     def __init__(self):
@@ -24,9 +22,9 @@ class Cluster:
         """
         This is a helper function invoked by cluster_codex.
 
-        :param edge_list: an edge list.
-        :param row: a pandas' dataframe row.
-        :param row_name: the row's name.
+        @param edge_list: an edge list.
+        @param row: a pandas' dataframe row.
+        @param row_name: the row's name.
         """
         row.apply(lambda col: edge_list.append([row_name, col]))
 
@@ -35,13 +33,13 @@ class Cluster:
         """
         This function will cluster codex cells.
 
-        :param stvea: a STvEA object.
-        :param k: the number of nearest neighbors to generate graph.
+        @param stvea: a STvEA object.
+        @param k: the number of nearest neighbors to generate graph.
         The graph will be used to perform Louvain community detection.
-        :param knn_option: the way to detect nearest neighbors.
+        @param knn_option: the way to detect nearest neighbors.
         1: use Pearson distance to find nearest neighbors on CODEX protein data.
         2: use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
-        :return:
+        @return:
         """
         # find knn
         if knn_option == 1:
@@ -78,12 +76,12 @@ class Cluster:
         """
         This method perform umap on codex protein data and create a 2d embedding.
 
-        :param stvea: a STvEA object.
-        :param metric: the metric to use here, default to correlation.
-        :param n_neighbors: the number of neighbors, default to 30.
-        :param min_dist: the effective minimum distance between embedded points.
-        :param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
-        :return:
+        @param stvea: a STvEA object.
+        @param metric: the metric to use here, default to correlation.
+        @param n_neighbors: the number of neighbors, default to 30.
+        @param min_dist: the effective minimum distance between embedded points.
+        @param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
+        @return:
         """
         if stvea.codex_protein.empty:
             raise ValueError("stvea object does not contain codex protein data")
@@ -103,12 +101,12 @@ class Cluster:
         cite_latent and cite_mrna will used here instead of protein data
         because cite_latent and cite_mrna are more informative
 
-        :param stvea: a STvEA object.
-        :param metric: the metric to calculate distance.
-        :param n_neighbors: the number of neighbors.
-        :param min_dist: the effective minimum distance between embedded points.
-        :param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
-        :return:
+        @param stvea: a STvEA object.
+        @param metric: the metric to calculate distance.
+        @param n_neighbors: the number of neighbors.
+        @param min_dist: the effective minimum distance between embedded points.
+        @param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
+        @return:
         """
         if stvea.cite_latent.empty and stvea.cite_mRNA.empty:
             raise ValueError("stvea object does not contain CITE-seq mRNA or latent data")
@@ -133,12 +131,12 @@ class Cluster:
         This function is borrowed from original STvEA R library.
         https://github.com/CamaraLab/STvEA/blob/master/inst/python/consensus_clustering.py
 
-        :param metric: metric to run HDBSCAN
-        :param umap_latent: cite_latent data after being transformed by umap.
-        :param min_cluster_size_list: a vector of min_cluster_size arguments to scan over
-        :param min_sample_list: a vector of min_sample arguments to scan over
-        :param cache_dir: a folder to store intermediary results of HDBSCAN
-        :return: a list of assigned labels.
+        @param metric: metric to run HDBSCAN
+        @param umap_latent: cite_latent data after being transformed by umap.
+        @param min_cluster_size_list: a vector of min_cluster_size arguments to scan over
+        @param min_sample_list: a vector of min_sample arguments to scan over
+        @param cache_dir: a folder to store intermediary results of HDBSCAN
+        @return: a list of assigned labels.
         """
         latent = np.array(latent)
         num_cells = latent.shape[0]
@@ -162,14 +160,14 @@ class Cluster:
         """
         This function will run HDBSCAN multiple times given the vector of min_cluster_size_range and min_sample_range.
         The result will be a list of dictionaries that will record each HDBSCAN's scores and generated labels.
-        :param stvea: a stvea object
-        :param min_cluster_size_range: a vector of min_cluster_size arguments to scan over
-        :param min_sample_range: a vector of min_sample arguments to scan over
-        :param n_neighbors: the number of neighbors
-        :param min_dist: the effective minimum distance between embedded points.
-        :param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
-        :param metric: Pearson correlation should be used here.
-        :return: a list of dictionaries that will record each HDBSCAN's scores and generated labels.
+        @param stvea: a stvea object
+        @param min_cluster_size_range: a vector of min_cluster_size arguments to scan over
+        @param min_sample_range: a vector of min_sample arguments to scan over
+        @param n_neighbors: the number of neighbors
+        @param min_dist: the effective minimum distance between embedded points.
+        @param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
+        @param metric: Pearson correlation should be used here.
+        @return: a list of dictionaries that will record each HDBSCAN's scores and generated labels.
         """
         cite_latent = stvea.cite_latent
         # Running UMAP on the CITE-seq latent space
@@ -213,10 +211,10 @@ class Cluster:
         This function will perform clustering given the distance matrix.
         https://github.com/CamaraLab/STvEA/blob/master/inst/python/consensus_clustering.py
 
-        :param distance_matrix: a consensus distance matrix based on HDBSCAN results.
-        :param inconsistent_value: input parameter to fcluster determining where clusters are cut in the hierarchical tree.
-        :param min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
-        :return: a list of labels
+        @param distance_matrix: a consensus distance matrix based on HDBSCAN results.
+        @param inconsistent_value: input parameter to fcluster determining where clusters are cut in the hierarchical tree.
+        @param min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
+        @return: a list of labels
         """
         new_distance = squareform(distance_matrix)
         hierarchical_tree = linkage(new_distance, "average")
@@ -234,11 +232,11 @@ class Cluster:
         """
         This function will first generate a distance matrix based on HDBSCAN results,
         and then invoke clustering function to perform clustering based on the distance matrix.
-        :param stvea: a STvEA object.
-        :param silhouette_cutoff: HDBSCAN results below this cutoff will be discarded.
-        :param inconsistent_value: input parameter to fcluster determining where clusters are cut in the hierarchical tree.
-        :param min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
-        :return
+        @param stvea: a STvEA object.
+        @param silhouette_cutoff: HDBSCAN results below this cutoff will be discarded.
+        @param inconsistent_value: input parameter to fcluster determining where clusters are cut in the hierarchical tree.
+        @param min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
+        @return
         """
         # initialize some variables
         hdbscan_results = stvea.hdbscan_scans
