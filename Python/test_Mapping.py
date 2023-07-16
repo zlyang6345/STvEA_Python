@@ -368,7 +368,9 @@ class TestMapping(TestCase):
         # python_corrected = Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, r_weights, stvea)
 
         Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, python_weights, stvea)
-        python_corrected = stvea.corrected_cite
+
+        python_corrected = stvea.codex_protein_corrected
+
         r_corrected = pd.read_csv("../../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
         fig, ax = plt.subplots(figsize=(12, 12))
@@ -418,7 +420,9 @@ class TestMapping(TestCase):
 
         weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
 
-        python_corrected = Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights)
+        Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+
+        python_corrected = stvea.codex_protein_corrected
 
         r_corrected = pd.read_csv("../../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
@@ -466,7 +470,9 @@ class TestMapping(TestCase):
 
         weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
 
-        python_corrected = Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights)
+        Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+
+        python_corrected = stvea.codex_protein_corrected
 
         r_corrected = pd.read_csv("../../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
@@ -514,7 +520,9 @@ class TestMapping(TestCase):
 
         weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
 
-        python_corrected = Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights)
+        Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+
+        python_corrected = stvea.codex_protein_corrected
 
         r_corrected = pd.read_csv("../../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
@@ -545,3 +553,55 @@ class TestMapping(TestCase):
         row_sum = transfer_matrix.sum(axis=1)
 
         assert (np.all(np.abs(row_sum - 1)) < 1e-8)
+
+    def test_transfer_matrix2(self):
+        # this test will use python's own cca common space data and own cleaned data.
+        # this function will generate transfer matrix and other relevant dataset.
+        stvea = STvEA.STvEA()
+        data_processor = DataProcessor.DataProcessor()
+        data_processor.read(stvea)
+
+        data_processor.filter_codex(stvea)
+        data_processor.clean_codex(stvea)
+        data_processor.clean_cite(stvea)
+
+        common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
+        codex_subset = stvea.codex_protein.loc[:, common_protein]
+        cite_subset = stvea.cite_protein.loc[:, common_protein]
+
+        cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
+        # cca_data = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
+
+        cite_count = cite_subset.shape[0]
+        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
+                                                  query_emb=cca_data.iloc[cite_count:, :],
+                                                  rna_mat=stvea.cite_latent,
+                                                  k=80)
+
+        anchors = Mapping.Mapping().find_anchor_pairs(neighbors, 20)
+
+        anchors = Mapping.Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
+
+        anchors = Mapping.Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
+                                                  len(neighbors["nn_qq"]["nn_idx"]), 80)
+
+        integration_matrix = Mapping.Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
+
+        weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
+
+        Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+
+        python_corrected = stvea.codex_protein_corrected
+
+        Mapping.Mapping().transfer_matrix(stvea)
+
+        stvea.transfer_matrix.to_csv("../Tests/python_transfer_matrix.csv")
+
+        print()
+
+
+
+
+
+
+

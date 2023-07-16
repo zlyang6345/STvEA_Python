@@ -451,24 +451,23 @@ class Mapping:
         bv = weights.dot(integration_matrix)
         bv.index = query_mat.index
         integrated = query_mat - bv
-        stvea.corrected_cite = integrated
+        stvea.codex_protein_corrected = integrated
         return
 
     @staticmethod
-    def transfer_matrix(from_dataset,
-                        to_dataset,
-                        stvea,
+    def transfer_matrix(stvea,
                         k=None,
                         c=0.1):
         """
         This function transfers a matrix from one dataset to another based on the CorNN function.
-        :param from_dataset: A pandas dataframe, usually CITE.
-        :param to_dataset: A pandas dataframe, usually CODEX.
         :param stvea: a STvEA object.
         :param k: number of nearest neighbors to find.
         :param c: constant controls the width of the Gaussian kernel.
         :return: Transferred matrix.
         """
+
+        from_dataset = stvea.cite_protein
+        to_dataset = stvea.codex_protein_corrected
 
         if k is None:
             k = int(np.floor(len(to_dataset) * 0.002))
@@ -497,6 +496,9 @@ class Mapping:
         transfer_matrix = coo_matrix((data, (rows, cols)))
 
         # Convert to CSR format for efficient arithmetic and matrix operations
-        stvea.transfer_matrix = transfer_matrix.tocsr()
+        stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
+
+        stvea.transfer_matrix.index = from_dataset.index
+        stvea.transfer_matrix.columns = to_dataset.index
 
         return

@@ -1,8 +1,9 @@
 from unittest import TestCase
-
+import Mapping
 import pandas as pd
 import STvEA
 import Annotation
+import DataProcessor
 
 
 class TestAnnotation(TestCase):
@@ -19,3 +20,6 @@ class TestAnnotation(TestCase):
         Annotation.Annotation().cite_cluster_names(cluster_index)
         pass
 
+    def test_transfer_labels(self):
+
+        pass

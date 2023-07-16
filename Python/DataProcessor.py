@@ -19,7 +19,6 @@ class DataProcessor:
     def read(self, stvea):
 
         self.read_cite(stvea)
-
         self.read_codex(stvea)
 
     def read_cite(self, stvea):
@@ -236,7 +235,7 @@ class DataProcessor:
         return p_obs
 
 
-    def fit_nb(self, protein_expr, col_name, maxit=500, factr=1e-9, optim_init=None):
+    def fit_nb(self, protein_expr, col_name, maxit=500, factr=1e-9, optim_init=None, verbose=False):
         """
         Fits the expression values of one protein with a Negative Binomial mixture
         Takes matrices and data frames instead of STvEA_R.data class
@@ -256,7 +255,8 @@ class DataProcessor:
         """
         # Create a probability distribution from the raw protein expression data
         p_obs = self.generate_p_obs(protein_expr)
-        print(col_name + ": ")
+        if verbose:
+            print(col_name + ": ")
 
         method = "l-bfgs-b"
         bound = [(1e-8, None)] * 4 + [(1e-8, 1)]
@@ -291,19 +291,24 @@ class DataProcessor:
             m = min(score1, score2, score3, score4, score5)
             self.overall_sse += m
             if score1 == m:
-                print("SSE1: ", score1)
+                if verbose:
+                    print("SSE1: ", score1)
                 fit = fit1.x
             elif score2 == m:
-                print("SSE2: ", score2)
+                if verbose:
+                    print("SSE2: ", score2)
                 fit = fit2.x
             elif score3 == m:
-                print("SSE3: ", score3)
+                if verbose:
+                    print("SSE3: ", score3)
                 fit = fit3.x
             elif score4 == m:
-                print("SSE4: ", score4)
+                if verbose:
+                    print("SSE4: ", score4)
                 fit = fit4.x
             else:
-                print("SSE5: ", score5)
+                if verbose:
+                    print("SSE5: ", score5)
                 fit = fit5.x
         else:
             fit = minimize(self.SSE, optim_init, args=(p_obs),

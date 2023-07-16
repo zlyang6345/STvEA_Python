@@ -18,7 +18,16 @@ class Annotation:
         @param stvea: a STvEA object.
         """
         cluster_index = stvea.cite_cluster_heatmap(stvea)
-        cluster_names = stvea.cite_cluster_names(cluster_index)
+        cite_cluster_names_dict = stvea.cite_cluster_names(cluster_index)
+        cite_cluster_names_dict[-1] = "No Assignment"
+        cite_cluster_assignment = deepcopy(stvea.cite_cluster[["Cluster"]])
+        cite_cluster_assignment_dummies = pd.get_dummies(cite_cluster_assignment, dtype=int)
+        stvea.transfer_matrix.columns = cite_cluster_assignment_dummies.index
+        codex_cluster_names_dummies = stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
+        codex_cluster_names_dummies.rename(columns=cite_cluster_names_dict, inplace=True)
+        codex_cluster_names = codex_cluster_names_dummies.apply(lambda row: row.idxmax(), axis=1)
+
+
 
 
 

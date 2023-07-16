@@ -9,7 +9,6 @@ class STvEA:
     cite_emb = pd.DataFrame()
     cite_cluster = list()
     hdbscan_scans = list()
-    corrected_cite = pd.DataFrame()
 
     codex_blanks = pd.DataFrame()
     codex_protein = pd.DataFrame()
@@ -18,6 +17,7 @@ class STvEA:
     codex_emb = pd.DataFrame()
     codex_knn = pd.DataFrame()
     codex_cluster = list()
+    codex_protein_corrected = pd.DataFrame()
 
     transfer_matrix = pd.DataFrame()
 
