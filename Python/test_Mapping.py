@@ -4,7 +4,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 import seaborn as sns
-
+import Cluster
 from Python import STvEA, DataProcessor, Mapping
 
 
@@ -547,8 +547,11 @@ class TestMapping(TestCase):
                                [10, 9, 7],
                                [1, 2, 4]])
 
-        Mapping.Mapping().transfer_matrix(from_dataset, to_dataset, stvea, 3, 0.2)
-        transfer_matrix = stvea.transfer_matrix.toarray()
+        stvea.cite_protein = pd.DataFrame(from_dataset)
+        stvea.codex_protein_corrected = pd.DataFrame(to_dataset)
+
+        Mapping.Mapping().transfer_matrix(stvea, 3, 0.2)
+        transfer_matrix = stvea.transfer_matrix
 
         row_sum = transfer_matrix.sum(axis=1)
 
@@ -556,7 +559,7 @@ class TestMapping(TestCase):
 
     def test_transfer_matrix2(self):
         # this test will use python's own cca common space data and own cleaned data.
-        # this function will generate transfer matrix and other relevant dataset.
+        # this function will generate transfer matrix and other relevant dataset for annotation test.
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor()
         data_processor.read(stvea)
@@ -570,7 +573,6 @@ class TestMapping(TestCase):
         cite_subset = stvea.cite_protein.loc[:, common_protein]
 
         cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
-        # cca_data = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
 
         cite_count = cite_subset.shape[0]
         neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
@@ -591,17 +593,15 @@ class TestMapping(TestCase):
 
         Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
 
-        python_corrected = stvea.codex_protein_corrected
-
         Mapping.Mapping().transfer_matrix(stvea)
 
+        # this part will generate CITE clusters
+        stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
+        stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
+        Cluster.Cluster().parameter_scan(stvea, list(range(5, 21, 4)), list(range(10, 41, 3)))
+        Cluster.Cluster().consensus_cluster(stvea, 0.114, 0.1, 10)
+
         stvea.transfer_matrix.to_csv("../Tests/python_transfer_matrix.csv")
-
-        print()
-
-
-
-
-
-
+        stvea.cite_protein.to_csv("../Tests/python_cite_clean.csv")
+        pd.Series(stvea.cite_cluster).to_csv("../Tests/python_cite_cluster.csv")
 

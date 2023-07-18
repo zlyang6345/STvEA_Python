@@ -24,7 +24,7 @@ class DataProcessor:
     def read_cite(self, stvea):
         """
         This method will read cvs files related to CITE_seq
-        :param stvea: an STvEA object
+        @param stvea: an STvEA object
         """
 
         stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
@@ -39,7 +39,7 @@ class DataProcessor:
     def read_codex(self, stvea):
         """
         This mehod will read cvs files related to CODEX
-        :param stvea: an STvEA object
+        @param stvea: an STvEA object
         """
 
         stvea.codex_blanks = pd.read_csv("../Data/codex_blanks.csv", index_col=0, header=0)
@@ -58,9 +58,9 @@ class DataProcessor:
 
         """
         This function will take a subset of original data
-        :param amount_codex: the amount of records will be kept for CODEX
-        :param amount_cite: the amount of records will be kept for CITE_seq
-        :param stvea: an STvEA object
+        @param amount_codex: the amount of records will be kept for CODEX
+        @param amount_cite: the amount of records will be kept for CITE_seq
+        @param stvea: an STvEA object
         """
 
         if (amount_cite < len(stvea.cite_protein) and amount_cite > 0):
@@ -92,10 +92,10 @@ class DataProcessor:
         quantiles are used for the blank channel expression. We then normalize the protein expression values
         by the total expression per cell.
 
-        :param stvea: a STvEA object
-        :param size_lim: a size limit like [1000, 25000]
-        :param blank_lower: a vector of length 4 like [-1200, -1200, -1200, -1200]
-        :param blank_upper: a vector of length 4 like [6000, 2500, 5000, 2500]
+        @param stvea: a STvEA object
+        @param size_lim: a size limit like [1000, 25000]
+        @param blank_lower: a vector of length 4 like [-1200, -1200, -1200, -1200]
+        @param blank_upper: a vector of length 4 like [6000, 2500, 5000, 2500]
         """
         # If size_lim is not specified,
         # it defaults to the 0.025 and 0.99 quantiles of the size vector.
@@ -146,7 +146,7 @@ class DataProcessor:
         levels of each protein. The signal expression is taken as the cumulative probability according to the
         Gaussian with the higher mean.
 
-        :param stvea: a STvEA object
+        @param stvea: a STvEA object
         """
         # subtracts the minimum value of all the elements in codex_protein (a data frame) from each element in the
         # data frame
@@ -215,8 +215,8 @@ class DataProcessor:
         """
         Given a protein expression series, this function will count frequencies
          and calculate each frequencies' probability.
-        :param protein_expr:  a protein expression series
-        :return:  a dataframe.
+        @param protein_expr:  a protein expression series
+        @return:  a dataframe.
         """
         max_express = max(protein_expr)
         p_obs = pd.Series(np.zeros(max_express + 1))
@@ -247,11 +247,11 @@ class DataProcessor:
         optim_init (list): optional initialization parameters for the optim function
         if None, starts at two default parameter sets and picks the better one
 
-        :param protein_expr: Raw CITE-seq protein data for one protein
-        :param maxit: maximum number of iterations for optim function
-        :param factr: accuracty of optim function
-        :param optim_init: optional initialization parameters for the optim function, if NULL, starts at two default parameter sets and picks the better one
-        :return:
+        @param protein_expr: Raw CITE-seq protein data for one protein
+        @param maxit: maximum number of iterations for optim function
+        @param factr: accuracty of optim function
+        @param optim_init: optional initialization parameters for the optim function, if NULL, starts at two default parameter sets and picks the better one
+        @return: cleaned expression.
         """
         # Create a probability distribution from the raw protein expression data
         p_obs = self.generate_p_obs(protein_expr)
@@ -334,9 +334,9 @@ class DataProcessor:
     def norm_cite(self, cite_protein, row_sums):
         """
         This function will normalize CITE-seq cells
-        :param cite_protein: a dataframe.
-        :param row_sums:  row sums of original protein expression dataframe.
-        :return: a dataframe.
+        @param cite_protein: a dataframe.
+        @param row_sums:  row sums of original protein expression dataframe.
+        @return: a dataframe.
         """
         # normalize
         # find rows that are not all 0s
@@ -356,10 +356,10 @@ class DataProcessor:
     def clean_cite(self, stvea, maxit=500, factr=1e-9, optim_init=None):
         """
         This function will use mixture negative binomial distribution models to clean CITEseq protein data
-        :param stvea: a STvEA object
-        :param maxit: the maximum number of iterations
-        :param factr: accuracy of optim function
-        :param optim_init: a vector of with initialization
+        @param stvea: a STvEA object
+        @param maxit: the maximum number of iterations
+        @param factr: accuracy of optim function
+        @param optim_init: a vector of with initialization
         """
         # Calculate the row sums
         row_sums = stvea.cite_protein.sum(axis=1)

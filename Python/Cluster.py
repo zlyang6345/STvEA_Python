@@ -98,7 +98,7 @@ class Cluster:
         """
         This function will perform umap on cite_latent or cite_mrna data,
         and construct a 2D embedding.
-        cite_latent and cite_mrna will used here instead of protein data
+        cite_latent and cite_mrna will be used here instead of protein data
         because cite_latent and cite_mrna are more informative
 
         @param stvea: a STvEA object.

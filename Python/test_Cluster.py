@@ -2,10 +2,8 @@ from unittest import TestCase
 import DataProcessor
 from matplotlib import pyplot as plt
 import seaborn as sns
-
 import pandas as pd
 import Cluster
-
 import STvEA
 
 
@@ -27,7 +25,6 @@ class TestCluster(TestCase):
         plt.title("Python CODEX Clusters 1")
         plt.show()
 
-
         # plot R
         r_codex_df = pd.read_csv("../Tests/r_codex_clusters.csv", index_col=0, header=0)
         r_codex_df = r_codex_df.apply(pd.to_numeric)
@@ -35,7 +32,6 @@ class TestCluster(TestCase):
         sns.scatterplot(data=r_codex_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
         plt.title("R CODEX Clusters")
         plt.show()
-
 
     def test_codex_umap(self):
         stvea = STvEA.STvEA()
@@ -128,4 +124,3 @@ class TestCluster(TestCase):
         sns.scatterplot(data=r_cite_cluster_df, x="x", y="y", hue="Cluster", palette="deep", s=60)
         plt.title("R CITE Clusters")
         plt.show()
-

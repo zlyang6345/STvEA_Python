@@ -460,10 +460,9 @@ class Mapping:
                         c=0.1):
         """
         This function transfers a matrix from one dataset to another based on the CorNN function.
-        :param stvea: a STvEA object.
-        :param k: number of nearest neighbors to find.
-        :param c: constant controls the width of the Gaussian kernel.
-        :return: Transferred matrix.
+        @param stvea: a STvEA object.
+        @param k: number of nearest neighbors to find.
+        @param c: constant controls the width of the Gaussian kernel.
         """
 
         from_dataset = stvea.cite_protein
@@ -480,25 +479,24 @@ class Mapping:
         nn_idx = nn_list['nn_idx']
         nn_dists_exp = np.exp(nn_list['nn_dists'] / -c)
 
-        # row normalize the distance matrix
+        # row-normalize the distance matrix
         nn_weights = nn_dists_exp.apply(lambda row: row / sum(row), axis=1)
 
         # gather entries and coords for the sparse matrix
         idx_array = nn_idx.to_numpy()
         weights_array = nn_weights.to_numpy()
 
-        # Flatten arrays and create coordinate pairs
+        # flatten arrays and create coordinate pairs
         rows = np.repeat(np.arange(idx_array.shape[0]), idx_array.shape[1])
         cols = idx_array.flatten()
         data = weights_array.flatten()
 
-        # Now, create a sparse matrix
+        # create a sparse matrix
         transfer_matrix = coo_matrix((data, (rows, cols)))
 
-        # Convert to CSR format for efficient arithmetic and matrix operations
+        # convert to CSR format for efficient arithmetic and matrix operations
         stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
-
-        stvea.transfer_matrix.index = from_dataset.index
-        stvea.transfer_matrix.columns = to_dataset.index
+        stvea.transfer_matrix.index = to_dataset.index
+        stvea.transfer_matrix.columns = from_dataset.index
 
         return

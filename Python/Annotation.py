@@ -17,18 +17,16 @@ class Annotation:
         This function will transfer labels.
         @param stvea: a STvEA object.
         """
-        cluster_index = stvea.cite_cluster_heatmap(stvea)
-        cite_cluster_names_dict = stvea.cite_cluster_names(cluster_index)
+        cluster_index = Annotation().cite_cluster_heatmap(stvea)
+        cite_cluster_names_dict = Annotation().cite_cluster_names(cluster_index)
         cite_cluster_names_dict[-1] = "No Assignment"
-        cite_cluster_assignment = deepcopy(stvea.cite_cluster[["Cluster"]])
-        cite_cluster_assignment_dummies = pd.get_dummies(cite_cluster_assignment, dtype=int)
+        cite_cluster_assignment = deepcopy(stvea.cite_cluster)
+        cite_cluster_assignment = cite_cluster_assignment.astype("category")
+        cite_cluster_assignment_dummies = pd.get_dummies(cite_cluster_assignment, prefix="", prefix_sep="")
         stvea.transfer_matrix.columns = cite_cluster_assignment_dummies.index
         codex_cluster_names_dummies = stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
         codex_cluster_names_dummies.rename(columns=cite_cluster_names_dict, inplace=True)
         codex_cluster_names = codex_cluster_names_dummies.apply(lambda row: row.idxmax(), axis=1)
-
-
-
 
 
     @staticmethod
@@ -40,13 +38,17 @@ class Annotation:
         @return cluster_index
         """
         # cluster assignments for each cell
-        clusters = stvea.cite_cluster.iloc[:, -1]
+        clusters = stvea.cite_cluster
         # creat a combined dataframe
         combined_df = deepcopy(stvea.cite_protein)
+        clusters.index = combined_df.index
         combined_df.insert(len(combined_df.columns), "Cluster", clusters)
         # group based on cluster and calculate the mean for each gene expression level within each cluster
         df_grouped = combined_df.groupby("Cluster").mean()
-        df_grouped.drop(-1, inplace=True)
+        if -1 in df_grouped.index:
+            # -1 means no cluster assignment
+            # drop -1
+            df_grouped.drop(-1, inplace=True)
         # transpose
         df_grouped = df_grouped.transpose()
 
@@ -67,19 +69,14 @@ class Annotation:
                 hoverongaps=False,
                 colorbar={"title": "Average Gene Expression", "titleside": "right"}))
 
+            # configure the graph
             fig.update_layout(title='Heatmap of Average Gene Expression by Cluster',
                               xaxis_title="Cluster",
                               yaxis_title="Gene",
                               xaxis_tickangle=-45)
 
-            # modify the x-axis
-            fig.update_xaxes(
-                tickmode='array',
-                tickvals=[i + 1 for i in range(len(df_grouped.columns))],  # x position
-                ticktext=df_grouped.columns.values  # tick name
-            )
-
             fig.show()
+
         return df_grouped.columns
 
     @staticmethod
