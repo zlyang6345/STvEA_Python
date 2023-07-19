@@ -66,7 +66,9 @@ class Cluster:
 
         # perform louvain community detection ()
         g = Graph(edges=edge_list)
-        stvea.codex_cluster = g.community_multilevel().membership
+        # add one to make clusters 1-indexed
+        stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
+                                           index=stvea.codex_protein.index) + 1
 
         return
 
@@ -88,7 +90,7 @@ class Cluster:
 
         res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
                             negative_sample_rate=negative_sample_rate, n_components=2).fit_transform(stvea.codex_protein)
-        stvea.codex_emb = pd.DataFrame(res)
+        stvea.codex_emb = pd.DataFrame(res, index=stvea.codex_protein.index)
 
         return
 
@@ -225,7 +227,7 @@ class Cluster:
             if len(indices) < min_cluster_size:
                 for index in indices:
                     hier_consensus_labels[index] = -1
-        return hier_consensus_labels.tolist()
+        return pd.DataFrame(hier_consensus_labels.tolist())
 
     @staticmethod
     def consensus_cluster(stvea, silhouette_cutoff, inconsistent_value, min_cluster_size):
@@ -287,17 +289,15 @@ class Cluster:
         # relabel the result as R implementation did
         original_array = np.array(consensus_clusters)
 
-        # Find unique elements and sort them
+        # find unique elements and sort them
         unique_elements = np.sort(np.unique(original_array))
 
-        # Create a pandas series with index as unique_elements and values as sequence from -1
+        # create a pandas series with index as unique_elements and values as sequence from -1
         map_series = pd.Series(np.concatenate([np.arange(-1, 0), np.arange(1, len(unique_elements))]), index=unique_elements)
 
-        # Map original_array to new values using map_series
-        new_array = map_series[original_array].values
-
+        # map original_array to new values using map_series
         # store the result in the STvEA object
-        stvea.cite_cluster = new_array
+        stvea.cite_cluster = pd.DataFrame(map_series[original_array].values)
 
         return
 

@@ -13,13 +13,15 @@ class TestCluster(TestCase):
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor()
         data_processor.read(stvea)
+        # data_processor.filter_codex(stvea)
         data_processor.clean_codex(stvea)
         Cluster.Cluster().codex_umap(stvea)
         Cluster.Cluster().cluster_codex(stvea)
 
         # plot python
+
         plot_df = pd.DataFrame({"x": stvea.codex_emb[0], "y": stvea.codex_emb[1],
-                                "Clusters": stvea.codex_cluster})
+                                "Clusters": stvea.codex_cluster[0]})
         plt.figure(figsize=(12, 12))
         sns.scatterplot(data=plot_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
         plt.title("Python CODEX Clusters 1")

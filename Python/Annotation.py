@@ -12,16 +12,38 @@ class Annotation:
         pass
 
     @staticmethod
+    def evaluation(stvea):
+        """
+        This function will evaluate the performance of label transferring.
+        @param stvea: a STvEA object.
+        """
+        Annotation().transfer_labels(stvea)
+        # show the CODEX protein expression level
+        cluster_index = Annotation.cluster_heatmap(stvea, 2, 2)
+        # user input CODEX cluster names
+        Annotation.cluster_names(cluster_index, stvea, 2)
+        # calculate the percentage of labels that are consistent between transferred label and user-annotated CODEX labels.
+        codex_clusters = deepcopy(stvea.codex_cluster)
+        codex_clusters_names = codex_clusters.applymap(lambda x: stvea.codex_cluster_name_dict(x))
+        combined = pd.DataFrame({"Original": codex_clusters_names[0],
+                                 "Transferred": stvea.codex_cluster_names_transferred[0]},
+                                index=stvea.codex_protein.index)
+        equality = combined.apply(lambda x: x[0] == x[1], axis=1)
+        # print the result
+        print(equality.mean())
+
+    @staticmethod
     def transfer_labels(stvea):
         """
         This function will transfer labels.
         @param stvea: a STvEA object.
         """
         # show user the gene expression info of the cluster
-        cluster_index = Annotation().cite_cluster_heatmap(stvea)
+        cluster_index = Annotation().cluster_heatmap(stvea, 1)
 
         # receive user annotation of clusters
-        cite_cluster_names_dict = Annotation().cite_cluster_names(cluster_index)
+        Annotation().cluster_names(cluster_index, stvea, 1)
+        cite_cluster_names_dict = stvea.cite_cluster_name_dict
         cite_cluster_names_dict[-1] = "No Assignment"
 
         # create indicator matrix of CITE cell cluster assignments
@@ -34,9 +56,8 @@ class Annotation:
         # transfer labels from CITE to CODEX
         codex_cluster_names_dummies = stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
         codex_cluster_names_dummies.rename(columns=cite_cluster_names_dict, inplace=True)
-        stvea.codex = codex_cluster_names_dummies.apply(lambda row: row.idxmax(), axis=1)
-
-
+        stvea.codex_cluster_names_transferred = codex_cluster_names_dummies.apply(lambda row: row.idxmax(),
+                                                                                  axis=1)
 
     @staticmethod
     def cluster_heatmap(stvea, dataset, option=2):
@@ -51,16 +72,15 @@ class Annotation:
             # cite
             # cluster assignments for each cell
             clusters = stvea.cite_cluster
-            # creat a combined dataframe
+            # creat a dataframe
             combined_df = deepcopy(stvea.cite_protein)
             title = "CITE-seq "
         else:
             # codex
             clusters = stvea.codex_cluster
-            # creat a combined dataframe
+            # creat a dataframe
             combined_df = deepcopy(stvea.codex_protein_corrected)
             title = "CODEX "
-
 
         clusters.index = combined_df.index
         combined_df.insert(len(combined_df.columns), "Cluster", clusters)
@@ -83,15 +103,17 @@ class Annotation:
             plt.show()
         else:
             # generate the interactive heatmap
+            # convert the x label to string to avoid some strange behavior of plotly
+            x = [str(index) for index in df_grouped.columns]
             fig = go.Figure(data=go.Heatmap(
                 z=df_grouped.values,
-                x=df_grouped.columns,
+                x=x,
                 y=df_grouped.index,
                 hoverongaps=False,
                 colorbar={"title": "Average Gene Expression", "titleside": "right"}))
 
             # configure the graph
-            fig.update_layout(title='Heatmap of Average Gene Expression by Cluster',
+            fig.update_layout(title=title + 'Heatmap of Average Gene Expression by Cluster',
                               xaxis_title="Cluster",
                               yaxis_title="Gene",
                               xaxis_tickangle=-45)
@@ -101,23 +123,32 @@ class Annotation:
         return df_grouped.columns
 
     @staticmethod
-    def cite_cluster_names(cluster_index):
+    def cluster_names(cluster_index, stvea, dataset):
         """
         This function will receive user input for each cluster.
         @param cluster_index: a list contains all the cluster index.
+        @param stvea: a STvEA object.
+        @param dataset: 1 for CITE, 2 for CODEX
         @return: a dictionary whose key is cluster index, and whose value is its name.
         """
         # let's get the number of clusters
         num_clusters = len(cluster_index)
 
+        if dataset == 1:
+            # CITE
+            title = " CITE-seq "
+        else:
+            # CODEX
+            title = " CODEX "
+
         # define layout
-        layout = [[sg.Text('Enter the name for each cluster')],
+        layout = [[sg.Text('Enter the name for each' + title + 'cluster.')],
                   *[[sg.Text(cluster_name), sg.Input(key=str(i))]
                     for i, cluster_name in enumerate(cluster_index)],
                   [sg.Button('OK')]]
 
         # create window
-        window = sg.Window('Enter Cluster Names', layout)
+        window = sg.Window('Enter' + title + 'Cluster Names', layout)
 
         # event loop and collecting user input
         cluster_names = {}
@@ -133,6 +164,10 @@ class Annotation:
         # clean up
         window.close()
 
-        return cluster_names
+        # store the dict in STvEA object
+        if dataset == 1:
+            stvea.cite_cluster_name_dict = cluster_names
+        else:
+            stvea.codex_cluster_name_dict = cluster_names
 
-
+        return
