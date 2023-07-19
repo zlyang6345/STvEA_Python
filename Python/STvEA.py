@@ -16,7 +16,7 @@ class STvEA:
     codex_spatial = pd.DataFrame()
     codex_emb = pd.DataFrame()
     codex_knn = pd.DataFrame()
-    codex_cluster = list()
+    codex_cluster = pd.DataFrame()
     codex_protein_corrected = pd.DataFrame()
 
     transfer_matrix = pd.DataFrame()

@@ -17,30 +17,51 @@ class Annotation:
         This function will transfer labels.
         @param stvea: a STvEA object.
         """
+        # show user the gene expression info of the cluster
         cluster_index = Annotation().cite_cluster_heatmap(stvea)
+
+        # receive user annotation of clusters
         cite_cluster_names_dict = Annotation().cite_cluster_names(cluster_index)
         cite_cluster_names_dict[-1] = "No Assignment"
+
+        # create indicator matrix of CITE cell cluster assignments
         cite_cluster_assignment = deepcopy(stvea.cite_cluster)
         cite_cluster_assignment = cite_cluster_assignment.astype("category")
         cite_cluster_assignment_dummies = pd.get_dummies(cite_cluster_assignment, prefix="", prefix_sep="")
+        cite_cluster_assignment_dummies = cite_cluster_assignment_dummies.applymap(lambda x: 1 if x else 0)
         stvea.transfer_matrix.columns = cite_cluster_assignment_dummies.index
+
+        # transfer labels from CITE to CODEX
         codex_cluster_names_dummies = stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
         codex_cluster_names_dummies.rename(columns=cite_cluster_names_dict, inplace=True)
-        codex_cluster_names = codex_cluster_names_dummies.apply(lambda row: row.idxmax(), axis=1)
+        stvea.codex = codex_cluster_names_dummies.apply(lambda row: row.idxmax(), axis=1)
+
 
 
     @staticmethod
-    def cite_cluster_heatmap(stvea, option=2):
+    def cluster_heatmap(stvea, dataset, option=2):
         """
-        This function will generate a heatmap to help user manually annotate CITE-seq clusters.
+        This function will generate a heatmap of clusters' protein expressions.
         @param stvea: a STvEA object.
+        @param dataset: 1 for CITE, 2 for CODEX
         @param option: 1 for static heatmap, 2 for interactive heatmap.
         @return cluster_index
         """
-        # cluster assignments for each cell
-        clusters = stvea.cite_cluster
-        # creat a combined dataframe
-        combined_df = deepcopy(stvea.cite_protein)
+        if dataset == 1:
+            # cite
+            # cluster assignments for each cell
+            clusters = stvea.cite_cluster
+            # creat a combined dataframe
+            combined_df = deepcopy(stvea.cite_protein)
+            title = "CITE-seq "
+        else:
+            # codex
+            clusters = stvea.codex_cluster
+            # creat a combined dataframe
+            combined_df = deepcopy(stvea.codex_protein_corrected)
+            title = "CODEX "
+
+
         clusters.index = combined_df.index
         combined_df.insert(len(combined_df.columns), "Cluster", clusters)
         # group based on cluster and calculate the mean for each gene expression level within each cluster
@@ -56,7 +77,7 @@ class Annotation:
             # Now you can generate the heatmap
             plt.figure(figsize=(10, 10))
             sns.heatmap(df_grouped, cmap="viridis")
-            plt.title("Heatmap of Average Gene Expression by Cluster")
+            plt.title(title + "Heatmap of Average Gene Expression by Cluster")
             plt.xlabel("Cluster")
             plt.ylabel("Gene")
             plt.show()

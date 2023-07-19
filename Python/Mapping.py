@@ -58,10 +58,14 @@ class Mapping:
 
     @staticmethod
     def map_codex_to_cite(stvea):
+        """
+        This function will calibrate CODEX protein expression levels to CITE-seq protein expression levels.
+        @param stvea: a STvEA object.
+        """
         # find common proteins
         common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
 
-        if (len(common_protein) < 2):
+        if len(common_protein) < 2:
             # for STvEA to properly transfer value from CODEX to CITE.
             # enough proteins are required.
             print("Too few common proteins between CODEX proteins and CITE-seq proteins")
@@ -71,9 +75,26 @@ class Mapping:
         codex_subset = stvea.codex_protein.loc[:, common_protein]
         cite_subset = stvea.cite_protein.loc[:, common_protein]
 
-        cca_data = Mapping().run_cca(codex_subset, cite_subset, True)
+        cca_data = Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
 
-        pass
+        cite_count = cite_subset.shape[0]
+        neighbors = Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
+                                          query_emb=cca_data.iloc[cite_count:, :],
+                                          rna_mat=stvea.cite_latent,
+                                          k=80)
+
+        anchors = Mapping().find_anchor_pairs(neighbors, 20)
+
+        anchors = Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
+
+        anchors = Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
+                                          len(neighbors["nn_qq"]["nn_idx"]), 80)
+
+        integration_matrix = Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
+
+        weights = Mapping().find_weights(neighbors, anchors, codex_subset, 100)
+
+        Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
 
     @staticmethod
     def find_anchor_pairs(neighbors, k_anchor=5):
@@ -469,7 +490,12 @@ class Mapping:
         to_dataset = stvea.codex_protein_corrected
 
         if k is None:
-            k = int(np.floor(len(to_dataset) * 0.002))
+            if len(to_dataset) < 1000:
+                # for small dataset
+                k = int(np.floor(len(to_dataset) * 0.02))
+            else:
+                # regular dataset
+                k = int(np.floor(len(to_dataset) * 0.002))
 
         # compute query knn from cor_nn
         # weight each nn based on gaussian kernel of distance

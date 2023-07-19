@@ -1,11 +1,15 @@
 import math
 from unittest import TestCase
-import pandas as pd
-from matplotlib import pyplot as plt
+
 import numpy as np
+import pandas as pd
 import seaborn as sns
+from matplotlib import pyplot as plt
+
 import Cluster
-from Python import STvEA, DataProcessor, Mapping
+import DataProcessor
+import Mapping
+import STvEA
 
 
 class TestMapping(TestCase):
@@ -568,30 +572,7 @@ class TestMapping(TestCase):
         data_processor.clean_codex(stvea)
         data_processor.clean_cite(stvea)
 
-        common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
-        codex_subset = stvea.codex_protein.loc[:, common_protein]
-        cite_subset = stvea.cite_protein.loc[:, common_protein]
-
-        cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
-
-        cite_count = cite_subset.shape[0]
-        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
-                                                  query_emb=cca_data.iloc[cite_count:, :],
-                                                  rna_mat=stvea.cite_latent,
-                                                  k=80)
-
-        anchors = Mapping.Mapping().find_anchor_pairs(neighbors, 20)
-
-        anchors = Mapping.Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
-
-        anchors = Mapping.Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
-                                                  len(neighbors["nn_qq"]["nn_idx"]), 80)
-
-        integration_matrix = Mapping.Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
-
-        weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
-
-        Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+        Mapping.Mapping().map_codex_to_cite(stvea)
 
         Mapping.Mapping().transfer_matrix(stvea)
 

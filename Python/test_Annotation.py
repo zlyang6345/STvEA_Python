@@ -12,7 +12,7 @@ class TestAnnotation(TestCase):
         stvea.cite_cluster = pd.read_csv("../Tests/R_cite_clusters.csv", index_col=0, header=0).astype("float64")
         stvea.cite_cluster = stvea.cite_cluster[stvea.cite_cluster.columns[-1]]
         stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
-        Annotation.Annotation().cite_cluster_heatmap(stvea, 2)
+        Annotation.Annotation().cluster_heatmap(stvea, 2)
 
     def test_cite_cluster_names(self):
         cluster_index = ["1", "2", "3", "4"]
