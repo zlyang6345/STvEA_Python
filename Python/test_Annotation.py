@@ -35,5 +35,14 @@ class TestAnnotation(TestCase):
         Annotation.Annotation().transfer_labels(stvea)
 
     def test_evaluation(self):
-        pass
+        stvea = STvEA.STvEA()
+        stvea.cite_cluster = pd.read_csv("../Tests/python_cite_cluster.csv", index_col=0, header=0).astype(int)
+        stvea.cite_protein = pd.read_csv("../Tests/python_cite_clean.csv", index_col=0, header=0).astype("float64")
+        stvea.transfer_matrix = pd.read_csv("../Tests/python_transfer_matrix.csv", index_col=0, header=0).astype(
+            "float64")
+        stvea.codex_cluster = pd.read_csv("../Tests/python_codex_clusters.csv", index_col=0, header=0).astype(int)
+        stvea.codex_protein_corrected = pd.read_csv("../Tests/python_codex_protein.csv", index_col=0, header=0).astype(
+            "float64")
+        Annotation.Annotation().evaluation(stvea)
+
 

@@ -17,6 +17,7 @@ class Annotation:
         This function will evaluate the performance of label transferring.
         @param stvea: a STvEA object.
         """
+        # transfer labels
         Annotation().transfer_labels(stvea)
         # show the CODEX protein expression level
         cluster_index = Annotation.cluster_heatmap(stvea, 2, 2)
@@ -24,18 +25,20 @@ class Annotation:
         Annotation.cluster_names(cluster_index, stvea, 2)
         # calculate the percentage of labels that are consistent between transferred label and user-annotated CODEX labels.
         codex_clusters = deepcopy(stvea.codex_cluster)
-        codex_clusters_names = codex_clusters.applymap(lambda x: stvea.codex_cluster_name_dict(x))
-        combined = pd.DataFrame({"Original": codex_clusters_names[0],
-                                 "Transferred": stvea.codex_cluster_names_transferred[0]},
-                                index=stvea.codex_protein.index)
+        codex_clusters_names = codex_clusters.applymap(lambda x: stvea.codex_cluster_name_dict.get(x, "Unknowns"))
+        combined = pd.DataFrame({"Original": codex_clusters_names.iloc[:, 0],
+                                 "Transferred": stvea.codex_cluster_names_transferred.iloc[:, 0]},
+                                index=stvea.codex_protein_corrected.index)
+        # check whether transferred labels and user-input labels
         equality = combined.apply(lambda x: x[0] == x[1], axis=1)
         # print the result
-        print(equality.mean())
+        print("Matched Proportion: " + equality.mean())
 
     @staticmethod
     def transfer_labels(stvea):
         """
-        This function will transfer labels.
+        This function will show the gene expression levels for each CITE-seq cluster, ask user to input name for each cluster.
+        These labels will be transferred to CODEX cells.
         @param stvea: a STvEA object.
         """
         # show user the gene expression info of the cluster
@@ -44,7 +47,7 @@ class Annotation:
         # receive user annotation of clusters
         Annotation().cluster_names(cluster_index, stvea, 1)
         cite_cluster_names_dict = stvea.cite_cluster_name_dict
-        cite_cluster_names_dict[-1] = "No Assignment"
+        cite_cluster_names_dict[-1] = "Unknowns"
 
         # create indicator matrix of CITE cell cluster assignments
         cite_cluster_assignment = deepcopy(stvea.cite_cluster)
@@ -55,9 +58,11 @@ class Annotation:
 
         # transfer labels from CITE to CODEX
         codex_cluster_names_dummies = stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
-        codex_cluster_names_dummies.rename(columns=cite_cluster_names_dict, inplace=True)
-        stvea.codex_cluster_names_transferred = codex_cluster_names_dummies.apply(lambda row: row.idxmax(),
-                                                                                  axis=1)
+        codex_cluster_index = codex_cluster_names_dummies.apply(lambda row: int(row.idxmax()), axis=1)
+        stvea.codex_cluster_names_transferred = pd.DataFrame(
+            codex_cluster_index.apply(lambda x: stvea.cite_cluster_name_dict.get(int(x), "Unknowns")))
+
+
 
     @staticmethod
     def cluster_heatmap(stvea, dataset, option=2):
@@ -166,8 +171,9 @@ class Annotation:
 
         # store the dict in STvEA object
         if dataset == 1:
+            # cite
             stvea.cite_cluster_name_dict = cluster_names
         else:
+            # codex
             stvea.codex_cluster_name_dict = cluster_names
-
         return
