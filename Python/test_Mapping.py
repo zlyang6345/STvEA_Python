@@ -218,7 +218,7 @@ class TestMapping(TestCase):
         neighbors = {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq}
 
         python_scored_anchors = Mapping.Mapping.score_anchors(neighbors, filtered_anchors, len(nn_rr["nn_idx"]),
-                                                                len(nn_qq["nn_idx"]), 80)
+                                                              len(nn_qq["nn_idx"]), 80)
 
         r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
                                        dtype={"cellr": int, "cellq": int, "score": float})
@@ -294,7 +294,7 @@ class TestMapping(TestCase):
         r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
 
         python_integration_matrix = Mapping.Mapping.find_integration_matrix(ref_mat, query_mat, neighbors,
-                                                                              r_scored_anchors)
+                                                                            r_scored_anchors)
 
         r_integration_matrix = pd.read_csv("../Tests/r_integration_matrix.csv", header=0, index_col=0)
 
@@ -360,7 +360,7 @@ class TestMapping(TestCase):
                                        dtype={"cellr": int, "cellq": int, "score": float})
         r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
 
-        python_weights = Mapping.Mapping().find_weights(neighbors, r_scored_anchors, query_mat, 100)
+        python_weights = Mapping.Mapping.find_weights(neighbors, r_scored_anchors, query_mat, 100)
 
         # ------------------
 
@@ -372,7 +372,7 @@ class TestMapping(TestCase):
         # r_weights = pd.read_csv("../Tests/r_weights.csv", index_col=0, header=0).astype("float64").transpose()
         # python_corrected = Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, r_weights, stvea)
 
-        Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, python_weights, stvea)
+        Mapping.Mapping.transform_data_matrix(query_mat, r_integration_matrix, python_weights, stvea)
 
         python_corrected = stvea.codex_protein_corrected
 
@@ -394,38 +394,38 @@ class TestMapping(TestCase):
         # this test will test the entire pipeline of mapping
         # 1000 cells
         stvea = STvEA.STvEA()
-        data_processor = DataProcessor.DataProcessor()
-        data_processor.read(stvea)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        data_processor.read()
 
-        data_processor.filter_codex(stvea)
-        data_processor.clean_codex(stvea)
-        data_processor.clean_cite(stvea)
+        data_processor.filter_codex()
+        data_processor.clean_codex()
+        data_processor.clean_cite()
 
         common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
         codex_subset = stvea.codex_protein.loc[:, common_protein]
         cite_subset = stvea.cite_protein.loc[:, common_protein]
 
-        cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
+        cca_data = Mapping.Mapping.run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
         # cca_data = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
 
         cite_count = cite_subset.shape[0]
-        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
-                                                  query_emb=cca_data.iloc[cite_count:, :],
-                                                  rna_mat=stvea.cite_latent,
-                                                  k=80)
+        neighbors = Mapping.Mapping.find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
+                                                query_emb=cca_data.iloc[cite_count:, :],
+                                                rna_mat=stvea.cite_latent,
+                                                k=80)
 
-        anchors = Mapping.Mapping().find_anchor_pairs(neighbors, 20)
+        anchors = Mapping.Mapping.find_anchor_pairs(neighbors, 20)
 
-        anchors = Mapping.Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
+        anchors = Mapping.Mapping.filter_anchors(cite_subset, codex_subset, anchors, 100)
 
-        anchors = Mapping.Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
-                                                  len(neighbors["nn_qq"]["nn_idx"]), 80)
+        anchors = Mapping.Mapping.score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
+                                                len(neighbors["nn_qq"]["nn_idx"]), 80)
 
-        integration_matrix = Mapping.Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
+        integration_matrix = Mapping.Mapping.find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
 
-        weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
+        weights = Mapping.Mapping.find_weights(neighbors, anchors, codex_subset, 100)
 
-        Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+        Mapping.Mapping.transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
 
         python_corrected = stvea.codex_protein_corrected
 
@@ -445,8 +445,8 @@ class TestMapping(TestCase):
     def test_of_mapping2(self):
         # this test will use python's own cca common space data and R's cleaned data.
         stvea = STvEA.STvEA()
-        data_processor = DataProcessor.DataProcessor()
-        data_processor.read(stvea)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        data_processor.read()
 
         stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
         stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
@@ -455,27 +455,27 @@ class TestMapping(TestCase):
         codex_subset = stvea.codex_protein.loc[:, common_protein]
         cite_subset = stvea.cite_protein.loc[:, common_protein]
 
-        cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
+        cca_data = Mapping.Mapping.run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
         # cca_data = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
 
         cite_count = cite_subset.shape[0]
-        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
-                                                  query_emb=cca_data.iloc[cite_count:, :],
-                                                  rna_mat=stvea.cite_latent,
-                                                  k=80)
+        neighbors = Mapping.Mapping.find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
+                                                query_emb=cca_data.iloc[cite_count:, :],
+                                                rna_mat=stvea.cite_latent,
+                                                k=80)
 
-        anchors = Mapping.Mapping().find_anchor_pairs(neighbors, 20)
+        anchors = Mapping.Mapping.find_anchor_pairs(neighbors, 20)
 
-        anchors = Mapping.Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
+        anchors = Mapping.Mapping.filter_anchors(cite_subset, codex_subset, anchors, 100)
 
-        anchors = Mapping.Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
-                                                  len(neighbors["nn_qq"]["nn_idx"]), 80)
+        anchors = Mapping.Mapping.score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
+                                                len(neighbors["nn_qq"]["nn_idx"]), 80)
 
-        integration_matrix = Mapping.Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
+        integration_matrix = Mapping.Mapping.find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
 
-        weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
+        weights = Mapping.Mapping.find_weights(neighbors, anchors, codex_subset, 100)
 
-        Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+        Mapping.Mapping.transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
 
         python_corrected = stvea.codex_protein_corrected
 
@@ -495,8 +495,8 @@ class TestMapping(TestCase):
     def test_of_mapping1(self):
         # this test will use R's generated CCA common space and R's cleaned data.
         stvea = STvEA.STvEA()
-        data_processor = DataProcessor.DataProcessor()
-        data_processor.read(stvea)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        data_processor.read()
 
         stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
         stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
@@ -509,23 +509,23 @@ class TestMapping(TestCase):
         cca_data = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
 
         cite_count = cite_subset.shape[0]
-        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
-                                                  query_emb=cca_data.iloc[cite_count:, :],
-                                                  rna_mat=stvea.cite_latent,
-                                                  k=80)
+        neighbors = Mapping.Mapping.find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
+                                                query_emb=cca_data.iloc[cite_count:, :],
+                                                rna_mat=stvea.cite_latent,
+                                                k=80)
 
-        anchors = Mapping.Mapping().find_anchor_pairs(neighbors, 20)
+        anchors = Mapping.Mapping.find_anchor_pairs(neighbors, 20)
 
-        anchors = Mapping.Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
+        anchors = Mapping.Mapping.filter_anchors(cite_subset, codex_subset, anchors, 100)
 
-        anchors = Mapping.Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
-                                                  len(neighbors["nn_qq"]["nn_idx"]), 80)
+        anchors = Mapping.Mapping.score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
+                                                len(neighbors["nn_qq"]["nn_idx"]), 80)
 
-        integration_matrix = Mapping.Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
+        integration_matrix = Mapping.Mapping.find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
 
-        weights = Mapping.Mapping().find_weights(neighbors, anchors, codex_subset, 100)
+        weights = Mapping.Mapping.find_weights(neighbors, anchors, codex_subset, 100)
 
-        Mapping.Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+        Mapping.Mapping.transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
 
         python_corrected = stvea.codex_protein_corrected
 
@@ -544,6 +544,8 @@ class TestMapping(TestCase):
 
     def test_transfer_matrix(self):
         stvea = STvEA.STvEA()
+        mp = Mapping.Mapping(stvea)
+
         from_dataset = np.array([[1, 2, 3],
                                  [10, 9, 7],
                                  [1, 2, 4]])
@@ -553,9 +555,11 @@ class TestMapping(TestCase):
                                [1, 2, 4]])
 
         stvea.cite_protein = pd.DataFrame(from_dataset)
+
         stvea.codex_protein_corrected = pd.DataFrame(to_dataset)
 
-        Mapping.Mapping().transfer_matrix(stvea, 3, 0.2)
+        mp.transfer_matrix(3, 0.2)
+
         transfer_matrix = stvea.transfer_matrix
 
         row_sum = transfer_matrix.sum(axis=1)
@@ -566,23 +570,22 @@ class TestMapping(TestCase):
         # this test will use python's own cca common space data and own cleaned data.
         # this function will generate transfer matrix and other relevant dataset for annotation test.
         stvea = STvEA.STvEA()
-        data_processor = DataProcessor.DataProcessor()
-        data_processor.read(stvea)
-
-        data_processor.filter_codex(stvea)
-        data_processor.clean_codex(stvea)
-        data_processor.clean_cite(stvea)
-
-        Mapping.Mapping().map_codex_to_cite(stvea)
-
-        Mapping.Mapping().transfer_matrix(stvea)
+        mp = Mapping.Mapping(stvea)
+        cl = Cluster.Cluster(stvea)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        data_processor.read()
+        data_processor.filter_codex()
+        data_processor.clean_codex()
+        data_processor.clean_cite()
+        mp.map_codex_to_cite()
+        mp.transfer_matrix()
 
         # this part will generate CITE clusters
-        stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
+        stvea.cite_latent = pd.read_csv("../Data/small_dataset/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
-        Cluster.Cluster().parameter_scan(stvea, list(range(5, 21, 4)), list(range(10, 41, 3)))
-        Cluster.Cluster().consensus_cluster(stvea, 0.114, 0.1, 10)
+        cl.parameter_scan(list(range(5, 21, 4)), list(range(10, 41, 3)))
+        cl.consensus_cluster(0.114, 0.1, 10)
 
         stvea.transfer_matrix.to_csv("../Tests/python_transfer_matrix.csv")
         stvea.cite_protein.to_csv("../Tests/python_cite_clean.csv")
-        pd.Series(stvea.cite_cluster).to_csv("../Tests/python_cite_cluster.csv")
+        stvea.cite_cluster.to_csv("../Tests/python_cite_cluster.csv")

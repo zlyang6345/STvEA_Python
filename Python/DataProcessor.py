@@ -16,14 +16,10 @@ class DataProcessor:
     def __init__(self, stvea):
         self.stvea = stvea
 
-    # this method will read relevant data (csv files) into STvEA object
-    def read(self):
-
-        self.read_cite()
-        self.read_codex()
-
-    def read_cite(self, cite_latent="../Data/cite_latent.csv", cite_protein="../Data/cite_protein.csv",
-                  cite_mrna="../Data/cite_mRNA.csv"):
+    def read_cite(self,
+                  cite_latent="../Data/small_dataset/cite_latent.csv",
+                  cite_protein="../Data/small_dataset/cite_protein.csv",
+                  cite_mrna="../Data/small_dataset/cite_mRNA.csv"):
         """
         This method will read cvs files related to CITE_seq.
         @param cite_latent: a string to specify the address of CITE-seq latent dataset.
@@ -39,20 +35,29 @@ class DataProcessor:
         self.stvea.cite_mRNA = pd.read_csv(cite_mrna, index_col=0, header=0)
         self.stvea.cite_mRNA = self.stvea.cite_mRNA.apply(pd.to_numeric)
 
-        print("CITE-seq data read")
+        print("CITE-seq data read!")
 
-    def read_codex(self, codex_blanks="../Data/codex_blanks.csv",
-                   codex_protein="../Data/codex_protein.csv",
-                   codex_size="../Data/codex_size.csv",
-                   codex_spatial="../Data/codex_spatial.csv"):
+    def read_codex(self,
+                   codex_blanks="../Data/small_dataset/codex_blanks.csv",
+                   codex_protein="../Data/small_dataset/codex_protein.csv",
+                   codex_size="../Data/small_dataset/codex_size.csv",
+                   codex_spatial="../Data/small_dataset/codex_spatial.csv",
+                   codex_preprocess=False,
+                   codex_border=-1):
         """
         This method will read cvs files related to CODEX.
+        @param codex_border: CODEX cells whose x and y are below this border will be kept in nm sense.
+            564000 in nm sense is equivalent to 30000 in voxel sense.
+            -1 means all CODEX cells will be kept.
+        @param codex_preprocess: a boolean value to specify whether to preprocess data as it is needed for raw data.
+            Preprocess means to convert voxel to nm.
         @param codex_blanks: a string to specify the address of CODEX blank dataset.
         @param codex_protein: a string to specify the address of CODEX protein dataset.
         @param codex_size: a string to specify the address of CODEX size dataset.
         @param codex_spatial: a string to specify the address of CODEX spatial dataset.
         """
 
+        # read
         self.stvea.codex_blanks = pd.read_csv(codex_blanks, index_col=0, header=0)
         self.stvea.codex_blanks = self.stvea.codex_blanks.apply(pd.to_numeric)
 
@@ -65,7 +70,23 @@ class DataProcessor:
         self.stvea.codex_spatial = pd.read_csv(codex_spatial, index_col=0, header=0)
         self.stvea.codex_spatial = self.stvea.codex_spatial.apply(pd.to_numeric)
 
-        print("CODEX files read")
+        if codex_preprocess:
+            # convert the stacks and voxels to nm
+            min_x = self.stvea.codex_spatial["x"].min() - 1
+            self.stvea.codex_spatial["x"] = (self.stvea.codex_spatial["x"] - min_x) * 188
+            min_y = self.stvea.codex_spatial["y"].min() - 1
+            self.stvea.codex_spatial["y"] = (self.stvea.codex_spatial["y"] - min_y) * 188
+            self.stvea.codex_spatial["z"] = self.stvea.codex_spatial["z"] * 900
+
+        if codex_border > 0:
+            codex_subset = (
+                        (self.stvea.codex_spatial["x"] < codex_border) & (self.stvea.codex_spatial["y"] < codex_border))
+            self.stvea.codex_size = self.stvea.codex_size[codex_subset]
+            self.stvea.codex_spatial = self.stvea.codex_spatial[codex_subset]
+            self.stvea.codex_protein = self.stvea.codex_protein[codex_subset]
+            self.stvea.codex_blanks = self.stvea.codex_blanks[codex_subset]
+
+        print("CODEX files read!")
 
     def take_subset(self, amount_codex=-1, amount_cite=-1):
 
@@ -90,6 +111,8 @@ class DataProcessor:
             self.stvea.codex_spatial = self.stvea.codex_spatial[1:amount_codex]
 
             self.stvea.codex_protein = self.stvea.codex_protein[1:amount_codex]
+
+
 
     def filter_codex(self,
                      size_lim=[1000, 25000],
@@ -149,7 +172,7 @@ class DataProcessor:
         self.stvea.codex_spatial = self.stvea.codex_spatial[mask]
 
         # print the result
-        print("Codex filtered! ", len(self.stvea.codex_blanks), " records preserved")
+        print("Codex filtered! With ", len(self.stvea.codex_blanks), " records preserved.")
 
     def clean_codex(self):
         """
@@ -261,7 +284,8 @@ class DataProcessor:
         @param protein_expr: Raw CITE-seq protein data for one protein.
         @param maxit: maximum number of iterations for optim function.
         @param factr: accuracy of optim function.
-        @param optim_init: a ndarray of optional initialization parameters for the optim function, if NULL, starts at five default parameter sets and picks the better one.
+        @param optim_init: a ndarray of optional initialization parameters for the optim function,
+                if NULL, starts at five default parameter sets and picks the better one.
         @return: cleaned protein expression.
         """
         # Create a probability distribution from the raw protein expression data
@@ -297,10 +321,10 @@ class DataProcessor:
         for index, score in enumerate(scores):
             if score == m:
                 self.overall_sse += m
-                fit = fits[index].x
+                best_fit = fits[index].x
                 break
 
-        mu1, mu2, size_reciprocal1, size_reciprocal2, mixing_prop = fit
+        mu1, mu2, size_reciprocal1, size_reciprocal2, mixing_prop = best_fit
         size1 = 1 / size_reciprocal1
         size2 = 1 / size_reciprocal2
         p1 = size1 / (size1 + mu1)
@@ -310,8 +334,8 @@ class DataProcessor:
         signal = np.argmax([nbinom.median(size1, p1),
                             nbinom.median(size2, p2)])
 
-        size = 1 / fit[signal + 2]
-        p = size / (size + fit[signal])
+        size = 1 / best_fit[signal + 2]
+        p = size / (size + best_fit[signal])
         expr_clean = nbinom.cdf(protein_expr, size, p)
 
         return expr_clean
@@ -339,7 +363,11 @@ class DataProcessor:
 
         return cite_protein
 
-    def clean_cite(self, maxit=500, factr=1e-9, optim_init=None, ignore_warnings=True):
+    def clean_cite(self,
+                   maxit=500,
+                   factr=1e-9,
+                   optim_init=None,
+                   ignore_warnings=True):
         """
         This function will use mixture negative binomial distribution models to clean CITE-seq protein data
         @param ignore_warnings: a boolean value to specify whether to ignore warnings or not.
@@ -354,8 +382,8 @@ class DataProcessor:
         row_sums = self.stvea.cite_protein.sum(axis=1)
 
         self.stvea.cite_protein = self.stvea.cite_protein.apply(
-            lambda col: self.fit_nb(col, col.name, maxit=500, factr=1e-9, optim_init=optim_init))
+            lambda col: self.fit_nb(col, col.name, maxit=maxit, factr=factr, optim_init=optim_init))
 
         self.stvea.cite_protein = self.norm_cite(self.stvea.cite_protein, row_sums)
 
-        print("CITE-seq protein cleaned, overall SSE: "+str(self.overall_sse))
+        print("CITE-seq protein cleaned, overall SSE:", str(self.overall_sse))

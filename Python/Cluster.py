@@ -1,17 +1,16 @@
 import warnings
-import igraph as igraph
-import numpy as np
 import umap.umap_ as umap
 import pandas as pd
 import numpy as np
 import hdbscan
-from sklearn.metrics import silhouette_samples, silhouette_score
+from sklearn.metrics import silhouette_samples
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.neighbors import NearestNeighbors
 from igraph import Graph
 from numba import NumbaDeprecationWarning
+
 
 class Cluster:
     stvea = None

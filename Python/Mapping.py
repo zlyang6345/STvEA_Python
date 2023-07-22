@@ -13,7 +13,7 @@ class Mapping:
     stvea = None
 
     def __init__(self, stvea):
-        stvea = STvEA.STvEA()
+        self.stvea = stvea
 
     @staticmethod
     def run_cca(object1, object2, standardize=True, num_cc=30, option=1):
@@ -104,7 +104,6 @@ class Mapping:
         @return: A dataframe that has three columns: cell r, cell q, and score.
         The score column is initialized here but will be calculated at next step.
         """
-        print("Finding mutual nearest neighborhoods.")
 
         # some routine check
         max_nn = max(neighbors['nn_rq']['nn_idx'].shape[1], neighbors['nn_qr']['nn_idx'].shape[1])
@@ -145,6 +144,7 @@ class Mapping:
 
         # convert to dataframe
         anchors = pd.DataFrame(anchors).astype("uint32")
+        print("Mutual nearest neighborhoods found!")
         return anchors
 
     @staticmethod
@@ -162,7 +162,6 @@ class Mapping:
                 'cellsr': ref_emb.index.values, 'cellsq': query_emb.index.values}
                 nn_rr and nn_qq are also dictionary that contain "nn_idx" and "nn_dists"
         """
-        print("Finding neighborhoods")
 
         if cite_index == 1:
             # use Pearson Correlation distance to find NN in mRNA dataset.
@@ -186,6 +185,8 @@ class Mapping:
         nn_qr_result = KDTree(ref_emb).query(query_emb, k=k, eps=eps)
         nn_qr = {"nn_idx": pd.DataFrame(nn_qr_result[1]),
                  "nn_dists": pd.DataFrame(nn_qr_result[0])}
+
+        print("Neighborhoods found!")
 
         return {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq,
                 'cellsr': ref_emb.index.values, 'cellsq': query_emb.index.values}
@@ -268,7 +269,7 @@ class Mapping:
 
         anchors = anchors[np.logical_or(position1, position2)]
 
-        print("Retained ", len(anchors), " anchors")
+        print("Retained ", len(anchors), " anchors!")
         return anchors
 
     @staticmethod
@@ -382,8 +383,6 @@ class Mapping:
         pd.DataFrame: integration matrix
         """
 
-        print("Finding integration vectors")
-
         # Extract cell expression proteins
         data_use_r = ref_mat.iloc[anchors["cellr"]].reset_index(drop=True)
         data_use_q = query_mat.iloc[anchors["cellq"]].reset_index(drop=True)
@@ -393,6 +392,8 @@ class Mapping:
 
         # Set the row names (index) to anchors_q
         integration_matrix.index = neighbors["cellsq"][anchors["cellq"]]
+
+        print("Integration vectors found!")
 
         return integration_matrix
 
@@ -408,8 +409,6 @@ class Mapping:
         @param sd_weight: standard deviation of the Gaussian kernel.
         @return: a dataframe whose row represents query cell and column represents anchors.
         """
-        # print a message.
-        print("Finding anchors weights.")
 
         # initialize some variables
         cellsr = neighbors["cellsr"]
@@ -454,6 +453,9 @@ class Mapping:
         # normalize by row
         weights = weights.div(weights.sum(axis=1), axis=0)
 
+        # print a message.
+        print("Anchor weights found!")
+
         return weights
 
     @staticmethod
@@ -471,7 +473,7 @@ class Mapping:
         bv.index = query_mat.index
         integrated = query_mat - bv
         stvea.codex_protein_corrected = integrated
-        print("Data integrated")
+        print("Data integrated!")
         return
 
     def transfer_matrix(self,
@@ -517,7 +519,7 @@ class Mapping:
         # create a sparse matrix
         transfer_matrix = coo_matrix((data, (rows, cols)))
 
-        # convert to CSR format for efficient arithmetic and matrix operations
+        # convert to DataFrame
         self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
         self.stvea.transfer_matrix.index = to_dataset.index
         self.stvea.transfer_matrix.columns = from_dataset.index

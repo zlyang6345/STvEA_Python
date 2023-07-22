@@ -60,7 +60,7 @@ class TestCluster(TestCase):
     def test_cite_umap(self):
         stvea = STvEA.STvEA()
         cl = Cluster.Cluster(stvea)
-        stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
+        stvea.cite_latent = pd.read_csv("../Data/small_dataset/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
         cl.cite_umap()
         stvea.cite_emb.to_csv("../Tests/python_cite_emb_from_cite_latent.csv")
@@ -93,7 +93,7 @@ class TestCluster(TestCase):
         stvea = STvEA.STvEA()
         cl = Cluster.Cluster(stvea)
 
-        stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
+        stvea.cite_latent = pd.read_csv("../Data/small_dataset/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
         cl.parameter_scan(stvea, list(range(5, 21, 4)), list(range(10, 41, 3)))
 
@@ -101,7 +101,7 @@ class TestCluster(TestCase):
         stvea = STvEA.STvEA()
         cl = Cluster.Cluster(stvea)
 
-        stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
+        stvea.cite_latent = pd.read_csv("../Data/small_dataset/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
         cl.parameter_scan(list(range(5, 21, 4)), list(range(10, 41, 3)))
         cl.consensus_cluster(0.114, 0.1, 10)
