@@ -11,12 +11,14 @@ class TestCluster(TestCase):
 
     def test_cluster_codex(self):
         stvea = STvEA.STvEA()
-        data_processor = DataProcessor.DataProcessor()
-        data_processor.read(stvea)
-        # data_processor.filter_codex(stvea)
-        data_processor.clean_codex(stvea)
-        Cluster.Cluster().codex_umap(stvea)
-        Cluster.Cluster().cluster_codex(stvea)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        cl = Cluster.Cluster(stvea)
+
+        data_processor.read()
+        # data_processor.filter_codex()
+        data_processor.clean_codex()
+        cl.codex_umap()
+        cl.cluster_codex()
 
         # plot python
 
@@ -37,10 +39,12 @@ class TestCluster(TestCase):
 
     def test_codex_umap(self):
         stvea = STvEA.STvEA()
-        data_processor = DataProcessor.DataProcessor()
-        data_processor.read(stvea)
-        data_processor.clean_codex(stvea)
-        Cluster.Cluster().codex_umap(stvea)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        cl = Cluster.Cluster(stvea)
+
+        data_processor.read()
+        data_processor.clean_codex()
+        cl.codex_umap()
         fig, ax = plt.subplots(figsize=(12, 12))
         stvea.codex_emb.apply(lambda x: ax.scatter(x[0], x[1]), axis=1)
         ax.set_title("CODEX UMAP results of Python")
@@ -55,9 +59,10 @@ class TestCluster(TestCase):
 
     def test_cite_umap(self):
         stvea = STvEA.STvEA()
+        cl = Cluster.Cluster(stvea)
         stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
-        Cluster.Cluster().cite_umap(stvea)
+        cl.cite_umap()
         stvea.cite_emb.to_csv("../Tests/python_cite_emb_from_cite_latent.csv")
 
         # stvea = STvEA.STvEA
@@ -75,7 +80,7 @@ class TestCluster(TestCase):
         ax.set_title("CITE-seq UMAP results of Python")
         plt.show()
 
-        python_umap_emb = pd.read_csv("R_cite_emb_from_cite_latent.csv", index_col=0, header=0)
+        python_umap_emb = pd.read_csv("../Tests/R_cite_emb_from_cite_latent.csv", index_col=0, header=0)
         python_umap_emb = python_umap_emb.apply(pd.to_numeric)
 
         fig, ax = plt.subplots(figsize=(12, 12))
@@ -86,17 +91,21 @@ class TestCluster(TestCase):
 
     def test_parameter_scan(self):
         stvea = STvEA.STvEA()
+        cl = Cluster.Cluster(stvea)
+
         stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
-        Cluster.Cluster().parameter_scan(stvea, list(range(5, 21, 4)), list(range(10, 41, 3)))
+        cl.parameter_scan(stvea, list(range(5, 21, 4)), list(range(10, 41, 3)))
 
     def test_consensus_cluster(self):
         stvea = STvEA.STvEA()
+        cl = Cluster.Cluster(stvea)
+
         stvea.cite_latent = pd.read_csv("../Data/cite_latent.csv", index_col=0, header=0)
         stvea.cite_latent = stvea.cite_latent.apply(pd.to_numeric)
-        Cluster.Cluster().parameter_scan(stvea, list(range(5, 21, 4)), list(range(10, 41, 3)))
-        Cluster.Cluster().consensus_cluster(stvea, 0.114, 0.1, 10)
-        Cluster.Cluster().cite_umap(stvea)
+        cl.parameter_scan(list(range(5, 21, 4)), list(range(10, 41, 3)))
+        cl.consensus_cluster(0.114, 0.1, 10)
+        cl.cite_umap()
 
         x = stvea.cite_emb.iloc[:, 0]
         y = stvea.cite_emb.iloc[:, 1]
@@ -105,7 +114,7 @@ class TestCluster(TestCase):
         clusters = stvea.cite_cluster
 
         # Create a dataframe for easier plotting
-        plot_df = pd.DataFrame({"x": x, "y": y, "Cluster": clusters})
+        plot_df = pd.DataFrame({"x": x, "y": y, "Cluster": clusters.iloc[:, 0]})
         not_minus_one = (plot_df.loc[:, "Cluster"] != -1)
         plot_df = plot_df.loc[not_minus_one, :]
 

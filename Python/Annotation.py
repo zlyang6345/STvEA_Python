@@ -5,70 +5,65 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import PySimpleGUI as sg
+import STvEA
 
 
 class Annotation:
-    def __init__(self):
-        pass
+    stvea = STvEA.STvEA()
 
-    @staticmethod
-    def evaluation(stvea):
+    def __init__(self, stvea):
+        self.stvea = stvea
+
+    def evaluation(self):
         """
         This function will evaluate the performance of label transferring.
-        @param stvea: a STvEA object.
         """
         # transfer labels
-        Annotation().transfer_labels(stvea)
+        self.transfer_labels()
         # show the CODEX protein expression level
-        cluster_index = Annotation.cluster_heatmap(stvea, 2, 2)
+        cluster_index = self.cluster_heatmap(2, 2)
         # user input CODEX cluster names
-        Annotation.cluster_names(cluster_index, stvea, 2)
+        self.cluster_names(cluster_index, 2)
         # calculate the percentage of labels that are consistent between transferred label and user-annotated CODEX labels.
-        codex_clusters = deepcopy(stvea.codex_cluster)
-        codex_clusters_names = codex_clusters.applymap(lambda x: stvea.codex_cluster_name_dict.get(x, "Unknowns"))
+        codex_clusters = deepcopy(self.stvea.codex_cluster)
+        codex_clusters_names = codex_clusters.applymap(lambda x: self.stvea.codex_cluster_name_dict.get(x, "Unknowns"))
         combined = pd.DataFrame({"Original": codex_clusters_names.iloc[:, 0],
-                                 "Transferred": stvea.codex_cluster_names_transferred.iloc[:, 0]},
-                                index=stvea.codex_protein_corrected.index)
+                                 "Transferred": self.stvea.codex_cluster_names_transferred.iloc[:, 0]},
+                                index=self.stvea.codex_protein_corrected.index)
         # check whether transferred labels and user-input labels
         equality = combined.apply(lambda x: x[0] == x[1], axis=1)
         # print the result
-        print("Matched Proportion: " + equality.mean())
+        print("Matched Proportion: " + str(equality.mean()))
 
-    @staticmethod
-    def transfer_labels(stvea):
+    def transfer_labels(self):
         """
         This function will show the gene expression levels for each CITE-seq cluster, ask user to input name for each cluster.
         These labels will be transferred to CODEX cells.
-        @param stvea: a STvEA object.
         """
         # show user the gene expression info of the cluster
-        cluster_index = Annotation().cluster_heatmap(stvea, 1)
+        cluster_index = self.cluster_heatmap(1)
 
         # receive user annotation of clusters
-        Annotation().cluster_names(cluster_index, stvea, 1)
-        cite_cluster_names_dict = stvea.cite_cluster_name_dict
+        self.cluster_names(cluster_index, 1)
+        cite_cluster_names_dict = self.stvea.cite_cluster_name_dict
         cite_cluster_names_dict[-1] = "Unknowns"
 
         # create indicator matrix of CITE cell cluster assignments
-        cite_cluster_assignment = deepcopy(stvea.cite_cluster)
+        cite_cluster_assignment = deepcopy(self.stvea.cite_cluster)
         cite_cluster_assignment = cite_cluster_assignment.astype("category")
         cite_cluster_assignment_dummies = pd.get_dummies(cite_cluster_assignment, prefix="", prefix_sep="")
         cite_cluster_assignment_dummies = cite_cluster_assignment_dummies.applymap(lambda x: 1 if x else 0)
-        stvea.transfer_matrix.columns = cite_cluster_assignment_dummies.index
+        self.stvea.transfer_matrix.columns = cite_cluster_assignment_dummies.index
 
         # transfer labels from CITE to CODEX
-        codex_cluster_names_dummies = stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
+        codex_cluster_names_dummies = self.stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
         codex_cluster_index = codex_cluster_names_dummies.apply(lambda row: int(row.idxmax()), axis=1)
-        stvea.codex_cluster_names_transferred = pd.DataFrame(
-            codex_cluster_index.apply(lambda x: stvea.cite_cluster_name_dict.get(int(x), "Unknowns")))
+        self.stvea.codex_cluster_names_transferred = pd.DataFrame(
+            codex_cluster_index.apply(lambda x: self.stvea.cite_cluster_name_dict.get(int(x), "Unknowns")))
 
-
-
-    @staticmethod
-    def cluster_heatmap(stvea, dataset, option=2):
+    def cluster_heatmap(self, dataset, option=2):
         """
         This function will generate a heatmap of clusters' protein expressions.
-        @param stvea: a STvEA object.
         @param dataset: 1 for CITE, 2 for CODEX
         @param option: 1 for static heatmap, 2 for interactive heatmap.
         @return cluster_index
@@ -76,15 +71,15 @@ class Annotation:
         if dataset == 1:
             # cite
             # cluster assignments for each cell
-            clusters = stvea.cite_cluster
+            clusters = self.stvea.cite_cluster
             # creat a dataframe
-            combined_df = deepcopy(stvea.cite_protein)
+            combined_df = deepcopy(self.stvea.cite_protein)
             title = "CITE-seq "
         else:
             # codex
-            clusters = stvea.codex_cluster
+            clusters = self.stvea.codex_cluster
             # creat a dataframe
-            combined_df = deepcopy(stvea.codex_protein_corrected)
+            combined_df = deepcopy(self.stvea.codex_protein_corrected)
             title = "CODEX "
 
         clusters.index = combined_df.index
@@ -127,12 +122,10 @@ class Annotation:
 
         return df_grouped.columns
 
-    @staticmethod
-    def cluster_names(cluster_index, stvea, dataset):
+    def cluster_names(self, cluster_index, dataset):
         """
         This function will receive user input for each cluster.
         @param cluster_index: a list contains all the cluster index.
-        @param stvea: a STvEA object.
         @param dataset: 1 for CITE, 2 for CODEX
         @return: a dictionary whose key is cluster index, and whose value is its name.
         """
@@ -172,8 +165,8 @@ class Annotation:
         # store the dict in STvEA object
         if dataset == 1:
             # cite
-            stvea.cite_cluster_name_dict = cluster_names
+            self.stvea.cite_cluster_name_dict = cluster_names
         else:
             # codex
-            stvea.codex_cluster_name_dict = cluster_names
+            self.stvea.codex_cluster_name_dict = cluster_names
         return

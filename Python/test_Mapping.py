@@ -1,11 +1,9 @@
 import math
 from unittest import TestCase
-
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
-
 import Cluster
 import DataProcessor
 import Mapping
@@ -13,26 +11,27 @@ import STvEA
 
 
 class TestMapping(TestCase):
+
     def test_run_cca(self):
         # read in r result
         # cite
         #  +
         # codex
-        r_cca_result = pd.read_csv("../../Tests/r_cca_matrix.csv", index_col=0, header=0)
+        r_cca_result = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
         r_cca_result = r_cca_result.apply(pd.to_numeric)
 
         stvea = STvEA.STvEA()
-        data_processor = DataProcessor.DataProcessor()
-        stvea.cite_protein = pd.read_csv("../../Tests/r_cite_clean.csv", index_col=0, header=0)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0)
         stvea.cite_protein = stvea.cite_protein.apply(pd.to_numeric)
-        stvea.codex_protein = pd.read_csv("../../Tests/r_codex_clean.csv", index_col=0, header=0)
+        stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0)
         stvea.codex_protein = stvea.codex_protein.apply(pd.to_numeric)
 
         common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
         codex_subset = stvea.codex_protein.loc[:, common_protein]
         cite_subset = stvea.cite_protein.loc[:, common_protein]
 
-        cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
+        cca_data = Mapping.Mapping.run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
 
         fig, ax = plt.subplots(figsize=(12, 12))
 
@@ -61,24 +60,24 @@ class TestMapping(TestCase):
                          [0.28174246, 0.07971738, 0.89442353, 0.69026102]])
 
         data = pd.DataFrame(data)
-        result = Mapping.Mapping().cor_nn(data, data)
+        result = Mapping.Mapping.cor_nn(data, data)
         nn_idx = result["nn_idx"]
         assert list(nn_idx.iloc[0, :]) == list([0, 8, 7, 3, 9])
 
     def test_find_nn_rna(self):
         stvea = STvEA.STvEA()
-        data_processor = DataProcessor.DataProcessor()
-        data_processor.read(stvea)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        data_processor.read()
 
-        r_cca_result = pd.read_csv("../../Tests/r_cca_matrix.csv", index_col=0, header=0)
+        r_cca_result = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
         r_cca_result = r_cca_result.apply(pd.to_numeric)
         cite_count = 1000
-        neighbors = Mapping.Mapping().find_nn_rna(ref_emb=r_cca_result.iloc[:cite_count, :],
-                                                  query_emb=r_cca_result.iloc[cite_count:, :],
-                                                  rna_mat=stvea.cite_latent,
-                                                  k=80)
+        neighbors = Mapping.Mapping.find_nn_rna(ref_emb=r_cca_result.iloc[:cite_count, :],
+                                                query_emb=r_cca_result.iloc[cite_count:, :],
+                                                rna_mat=stvea.cite_latent,
+                                                k=80)
 
-        r_nn_qq = pd.read_csv("../../Tests/r_nn_qq.csv", index_col=0, header=0)
+        r_nn_qq = pd.read_csv("../Tests/r_nn_qq.csv", index_col=0, header=0)
         r_nn_qq = r_nn_qq.apply(pd.to_numeric)
         fig, ax = plt.subplots(figsize=(12, 12))
 
@@ -92,7 +91,7 @@ class TestMapping(TestCase):
         ax.set_title("Scatter Plot of nn_qq Result")
         plt.show()
 
-        r_nn_rr = pd.read_csv("../../Tests/r_nn_rr.csv", index_col=0, header=0)
+        r_nn_rr = pd.read_csv("../Tests/r_nn_rr.csv", index_col=0, header=0)
         r_nn_rr = r_nn_rr.apply(pd.to_numeric)
         fig, ax = plt.subplots(figsize=(12, 12))
 
@@ -106,7 +105,7 @@ class TestMapping(TestCase):
         ax.set_title("Scatter Plot of nn_rr Result")
         plt.show()
 
-        r_nn_qr = pd.read_csv("../../Tests/r_nn_qr.csv", index_col=0, header=0)
+        r_nn_qr = pd.read_csv("../Tests/r_nn_qr.csv", index_col=0, header=0)
         r_nn_qr = r_nn_qr.apply(pd.to_numeric)
 
         fig, ax = plt.subplots(figsize=(12, 12))
@@ -121,7 +120,7 @@ class TestMapping(TestCase):
         ax.set_title("Scatter Plot of nn_qr Result")
         plt.show()
 
-        r_nn_rq = pd.read_csv("../../Tests/r_nn_rq.csv", index_col=0, header=0)
+        r_nn_rq = pd.read_csv("../Tests/r_nn_rq.csv", index_col=0, header=0)
         r_nn_rq = r_nn_rq.apply(pd.to_numeric)
 
         fig, ax = plt.subplots(figsize=(12, 12))
@@ -136,27 +135,27 @@ class TestMapping(TestCase):
         ax.set_title("Scatter Plot of nn_rq Result")
         plt.show()
 
-    def test_find_anchor_pairs(sefl):
+    def test_find_anchor_pairs(self):
 
-        nn_qq = pd.read_csv("../../Tests/r_nn_qq.csv", index_col=0, header=0).astype("uint32")
+        nn_qq = pd.read_csv("../Tests/r_nn_qq.csv", index_col=0, header=0).astype("uint32")
         nn_qq_idx = nn_qq.apply(lambda x: x - 1)
         nn_qq = {
             "nn_idx": nn_qq_idx
         }
 
-        nn_rr = pd.read_csv("../../Tests/r_nn_rr.csv", index_col=0, header=0).astype("uint32")
+        nn_rr = pd.read_csv("../Tests/r_nn_rr.csv", index_col=0, header=0).astype("uint32")
         nn_rr_idx = nn_rr.apply(lambda x: x - 1)
         nn_rr = {
             "nn_idx": nn_rr_idx
         }
 
-        nn_qr = pd.read_csv("../../Tests/r_nn_qr.csv", index_col=0, header=0).astype("uint32")
+        nn_qr = pd.read_csv("../Tests/r_nn_qr.csv", index_col=0, header=0).astype("uint32")
         nn_qr_idx = nn_qr.apply(lambda x: x - 1)
         nn_qr = {
             "nn_idx": nn_qr_idx
         }
 
-        nn_rq = pd.read_csv("../../Tests/r_nn_rq.csv", index_col=0, header=0).astype("uint32")
+        nn_rq = pd.read_csv("../Tests/r_nn_rq.csv", index_col=0, header=0).astype("uint32")
         nn_rq_idx = nn_rq.apply(lambda x: x - 1)
         nn_rq = {
             "nn_idx": nn_rq_idx
@@ -164,8 +163,8 @@ class TestMapping(TestCase):
 
         neighbors = {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq}
 
-        python_anchors = Mapping.Mapping().find_anchor_pairs(neighbors, k_anchor=20)
-        r_anchors = pd.read_csv("../../Tests/anchors.csv", index_col=0, header=0).astype("uint32")
+        python_anchors = Mapping.Mapping.find_anchor_pairs(neighbors, k_anchor=20)
+        r_anchors = pd.read_csv("../Tests/anchors.csv", index_col=0, header=0).astype("uint32")
 
         plt.figure(figsize=(24, 12))
 
@@ -180,36 +179,37 @@ class TestMapping(TestCase):
         plt.show()
 
     def test_filter_anchors(self):
-        ref_mat = pd.read_csv("../../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
-        query_mat = pd.read_csv("../../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
-        anchors = pd.read_csv("../../Tests/anchors.csv", index_col=0, header=0).astype("uint32")
+        ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        anchors = pd.read_csv("../Tests/anchors.csv", index_col=0, header=0).astype("uint32")
         anchors = anchors.apply(lambda x: x - 1)  # csv generated by R, and R is one-indexed
-        filterd_anchors = Mapping.Mapping().filter_anchors(ref_mat, query_mat, anchors, k_filter=100)
-        assert (filterd_anchors.shape[0] == 2230)
+        filtered_anchors = Mapping.Mapping.filter_anchors(ref_mat, query_mat, anchors, k_filter=100)
+        assert (filtered_anchors.shape[0] == 2230)
 
     def test_score_anchors(self):
-        filtered_anchors = pd.read_csv("../../Tests/filteredAnchors.csv", index_col=0, header=0).astype("uint32")
+
+        filtered_anchors = pd.read_csv("../Tests/filteredAnchors.csv", index_col=0, header=0).astype("uint32")
         filtered_anchors = filtered_anchors.apply(lambda x: x - 1)
 
-        nn_qq = pd.read_csv("../../Tests/r_nn_qq.csv", index_col=0, header=0).astype("uint32")
+        nn_qq = pd.read_csv("../Tests/r_nn_qq.csv", index_col=0, header=0).astype("uint32")
         nn_qq_idx = nn_qq.apply(lambda x: x - 1)
         nn_qq = {
             "nn_idx": nn_qq_idx
         }
 
-        nn_rr = pd.read_csv("../../Tests/r_nn_rr.csv", index_col=0, header=0).astype("uint32")
+        nn_rr = pd.read_csv("../Tests/r_nn_rr.csv", index_col=0, header=0).astype("uint32")
         nn_rr_idx = nn_rr.apply(lambda x: x - 1)
         nn_rr = {
             "nn_idx": nn_rr_idx
         }
 
-        nn_qr = pd.read_csv("../../Tests/r_nn_qr.csv", index_col=0, header=0).astype("uint32")
+        nn_qr = pd.read_csv("../Tests/r_nn_qr.csv", index_col=0, header=0).astype("uint32")
         nn_qr_idx = nn_qr.apply(lambda x: x - 1)
         nn_qr = {
             "nn_idx": nn_qr_idx
         }
 
-        nn_rq = pd.read_csv("../../Tests/r_nn_rq.csv", index_col=0, header=0).astype("uint32")
+        nn_rq = pd.read_csv("../Tests/r_nn_rq.csv", index_col=0, header=0).astype("uint32")
         nn_rq_idx = nn_rq.apply(lambda x: x - 1)
         nn_rq = {
             "nn_idx": nn_rq_idx
@@ -217,10 +217,10 @@ class TestMapping(TestCase):
 
         neighbors = {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq}
 
-        python_scored_anchors = Mapping.Mapping().score_anchors(neighbors, filtered_anchors, len(nn_rr["nn_idx"]),
+        python_scored_anchors = Mapping.Mapping.score_anchors(neighbors, filtered_anchors, len(nn_rr["nn_idx"]),
                                                                 len(nn_qq["nn_idx"]), 80)
 
-        r_scored_anchors = pd.read_csv("../../Tests/r_scored_anchors.csv", index_col=0, header=0,
+        r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
                                        dtype={"cellr": int, "cellq": int, "score": float})
         r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
         r_scored_anchors = r_scored_anchors.sort_values(by=["cellr", "cellq"]).reset_index(drop=True)
@@ -235,14 +235,14 @@ class TestMapping(TestCase):
         nn_idx = np.array([[0, 1, 2],
                            [1, 0, 2],
                            [2, 0, 1]])
-        nn_mat = Mapping.Mapping().construct_nn_mat(nn_idx, 0, 0, (4, 4)).toarray()
+        nn_mat = Mapping.Mapping.construct_nn_mat(nn_idx, 0, 0, (4, 4)).toarray()
         target = np.array([[1, 1, 1, 0],
                            [1, 1, 1, 0],
                            [1, 1, 1, 0],
                            [0, 0, 0, 0]])
         assert_array_equal(nn_mat, target)
 
-        nn_mat = Mapping.Mapping().construct_nn_mat(nn_idx, 0, 1, (4, 4)).toarray()
+        nn_mat = Mapping.Mapping.construct_nn_mat(nn_idx, 0, 1, (4, 4)).toarray()
         target = np.array([[0, 1, 1, 1],
                            [0, 1, 1, 1],
                            [0, 1, 1, 1],
@@ -251,52 +251,52 @@ class TestMapping(TestCase):
 
     def test_find_integration_matrix(self):
 
-        filtered_anchors = pd.read_csv("../../Tests/filteredAnchors.csv", index_col=0, header=0).astype("uint32")
+        filtered_anchors = pd.read_csv("../Tests/filteredAnchors.csv", index_col=0, header=0).astype("uint32")
         filtered_anchors = filtered_anchors.apply(lambda x: x - 1)
 
-        nn_qq = pd.read_csv("../../Tests/r_nn_qq.csv", index_col=0, header=0).astype("uint32")
-        nn_qq_idx = nn_qq.apply(lambda x: x - 1)
+        nn_qq = pd.read_csv("../Tests/r_nn_qq.csv", index_col=0, header=0).astype("uint32")
+        nn_qq_idx = nn_qq.apply(lambda entry: entry - 1)
         nn_qq = {
             "nn_idx": nn_qq_idx
         }
 
-        nn_rr = pd.read_csv("../../Tests/r_nn_rr.csv", index_col=0, header=0).astype("uint32")
-        nn_rr_idx = nn_rr.apply(lambda x: x - 1)
+        nn_rr = pd.read_csv("../Tests/r_nn_rr.csv", index_col=0, header=0).astype("uint32")
+        nn_rr_idx = nn_rr.apply(lambda entry: entry - 1)
         nn_rr = {
             "nn_idx": nn_rr_idx
         }
 
-        nn_qr = pd.read_csv("../../Tests/r_nn_qr.csv", index_col=0, header=0).astype("uint32")
-        nn_qr_idx = nn_qr.apply(lambda x: x - 1)
+        nn_qr = pd.read_csv("../Tests/r_nn_qr.csv", index_col=0, header=0).astype("uint32")
+        nn_qr_idx = nn_qr.apply(lambda entry: entry - 1)
         nn_qr = {
             "nn_idx": nn_qr_idx
         }
 
-        nn_rq = pd.read_csv("../../Tests/r_nn_rq.csv", index_col=0, header=0).astype("uint32")
-        nn_rq_idx = nn_rq.apply(lambda x: x - 1)
+        nn_rq = pd.read_csv("../Tests/r_nn_rq.csv", index_col=0, header=0).astype("uint32")
+        nn_rq_idx = nn_rq.apply(lambda entry: entry - 1)
         nn_rq = {
             "nn_idx": nn_rq_idx
         }
 
-        r_cite_clean = pd.read_csv("../../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
+        r_cite_clean = pd.read_csv("../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
         cellsr = r_cite_clean.index
 
-        r_codex_clean = pd.read_csv("../../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
+        r_codex_clean = pd.read_csv("../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
         cellsq = r_codex_clean.index
 
         neighbors = {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq, "cellsr": cellsr, "cellsq": cellsq}
 
-        ref_mat = pd.read_csv("../../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
-        query_mat = pd.read_csv("../../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
 
-        r_scored_anchors = pd.read_csv("../../Tests/r_scored_anchors.csv", index_col=0, header=0,
+        r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
                                        dtype={"cellr": int, "cellq": int, "score": float})
         r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
 
-        python_integration_matrix = Mapping.Mapping().find_integration_matrix(ref_mat, query_mat, neighbors,
+        python_integration_matrix = Mapping.Mapping.find_integration_matrix(ref_mat, query_mat, neighbors,
                                                                               r_scored_anchors)
 
-        r_integration_matrix = pd.read_csv("../../Tests/r_integration_matrix.csv", header=0, index_col=0)
+        r_integration_matrix = pd.read_csv("../Tests/r_integration_matrix.csv", header=0, index_col=0)
 
         fig, ax = plt.subplots(figsize=(12, 12))
         for i, column in enumerate(python_integration_matrix.columns):
@@ -311,26 +311,27 @@ class TestMapping(TestCase):
         plt.show()
 
     def test_find_weights(self):
-        r_cite_clean = pd.read_csv("../../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
+        r_cite_clean = pd.read_csv("../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
         cellsr = r_cite_clean.index
 
-        r_codex_clean = pd.read_csv("../../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
+        r_codex_clean = pd.read_csv("../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
         cellsq = r_codex_clean.index
 
         neighbors = {"cellsr": cellsr, "cellsq": cellsq}
 
         # ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
-        query_mat = pd.read_csv("../../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
 
-        r_scored_anchors = pd.read_csv("../../Tests/r_scored_anchors.csv", index_col=0, header=0,
+        r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
                                        dtype={"cellr": int, "cellq": int, "score": float})
         r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
 
-        python_weights = Mapping.Mapping().find_weights(neighbors, r_scored_anchors, query_mat, 100).transpose()
+        python_weights = Mapping.Mapping.find_weights(neighbors, r_scored_anchors, query_mat, 100).transpose()
 
-        r_weights = pd.read_csv("../../Tests/r_weights.csv", index_col=0, header=0).astype("float64")
+        r_weights = pd.read_csv("../Tests/r_weights.csv", index_col=0, header=0).astype("float64")
 
         fig, ax = plt.subplots(figsize=(12, 12))
+
         for i, column in enumerate(python_weights.columns):
             x = r_weights.iloc[:, i]
             y = python_weights.iloc[:, i]
@@ -344,18 +345,18 @@ class TestMapping(TestCase):
     def test_transform_data_matrix(self):
         stvea = STvEA.STvEA()
         # use python's python_weights
-        r_cite_clean = pd.read_csv("../../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
+        r_cite_clean = pd.read_csv("../Tests/r_cite_clean.csv", header=0, index_col=0).astype("float64")
         cellsr = r_cite_clean.index
 
-        r_codex_clean = pd.read_csv("../../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
+        r_codex_clean = pd.read_csv("../Tests/r_codex_clean.csv", header=0, index_col=0).astype("float64")
         cellsq = r_codex_clean.index
 
         neighbors = {"cellsr": cellsr, "cellsq": cellsq}
 
         # ref_mat = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
-        query_mat = pd.read_csv("../../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
 
-        r_scored_anchors = pd.read_csv("../../Tests/r_scored_anchors.csv", index_col=0, header=0,
+        r_scored_anchors = pd.read_csv("../Tests/r_scored_anchors.csv", index_col=0, header=0,
                                        dtype={"cellr": int, "cellq": int, "score": float})
         r_scored_anchors[["cellr", "cellq"]] = r_scored_anchors[["cellr", "cellq"]] - 1
 
@@ -365,8 +366,8 @@ class TestMapping(TestCase):
 
         # use pure R data
 
-        query_mat = pd.read_csv("../../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
-        r_integration_matrix = pd.read_csv("../../Tests/r_integration_matrix.csv", header=0, index_col=0).astype(
+        query_mat = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        r_integration_matrix = pd.read_csv("../Tests/r_integration_matrix.csv", header=0, index_col=0).astype(
             "float64")
         # r_weights = pd.read_csv("../Tests/r_weights.csv", index_col=0, header=0).astype("float64").transpose()
         # python_corrected = Mapping.Mapping().transform_data_matrix(query_mat, r_integration_matrix, r_weights, stvea)
@@ -375,7 +376,7 @@ class TestMapping(TestCase):
 
         python_corrected = stvea.codex_protein_corrected
 
-        r_corrected = pd.read_csv("../../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
+        r_corrected = pd.read_csv("../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
         fig, ax = plt.subplots(figsize=(12, 12))
         for i, index in enumerate(python_corrected.index):
@@ -428,7 +429,7 @@ class TestMapping(TestCase):
 
         python_corrected = stvea.codex_protein_corrected
 
-        r_corrected = pd.read_csv("../../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
+        r_corrected = pd.read_csv("../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
         fig, ax = plt.subplots(figsize=(12, 12))
         for i, index in enumerate(python_corrected.index):
@@ -447,8 +448,8 @@ class TestMapping(TestCase):
         data_processor = DataProcessor.DataProcessor()
         data_processor.read(stvea)
 
-        stvea.codex_protein = pd.read_csv("../../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
-        stvea.cite_protein = pd.read_csv("../../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
 
         common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
         codex_subset = stvea.codex_protein.loc[:, common_protein]
@@ -478,7 +479,7 @@ class TestMapping(TestCase):
 
         python_corrected = stvea.codex_protein_corrected
 
-        r_corrected = pd.read_csv("../../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
+        r_corrected = pd.read_csv("../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
         fig, ax = plt.subplots(figsize=(12, 12))
         for i, index in enumerate(python_corrected.index):
@@ -497,15 +498,15 @@ class TestMapping(TestCase):
         data_processor = DataProcessor.DataProcessor()
         data_processor.read(stvea)
 
-        stvea.codex_protein = pd.read_csv("../../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
-        stvea.cite_protein = pd.read_csv("../../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
+        stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
 
         common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
         codex_subset = stvea.codex_protein.loc[:, common_protein]
         cite_subset = stvea.cite_protein.loc[:, common_protein]
 
         # cca_data = Mapping.Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
-        cca_data = pd.read_csv("../../Tests/r_cca_matrix.csv", index_col=0, header=0)
+        cca_data = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
 
         cite_count = cite_subset.shape[0]
         neighbors = Mapping.Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
@@ -528,7 +529,7 @@ class TestMapping(TestCase):
 
         python_corrected = stvea.codex_protein_corrected
 
-        r_corrected = pd.read_csv("../../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
+        r_corrected = pd.read_csv("../Tests/r_corrected.csv", index_col=0, header=0).astype("float64")
 
         fig, ax = plt.subplots(figsize=(12, 12))
         for i, index in enumerate(python_corrected.index):
@@ -585,4 +586,3 @@ class TestMapping(TestCase):
         stvea.transfer_matrix.to_csv("../Tests/python_transfer_matrix.csv")
         stvea.cite_protein.to_csv("../Tests/python_cite_clean.csv")
         pd.Series(stvea.cite_cluster).to_csv("../Tests/python_cite_cluster.csv")
-

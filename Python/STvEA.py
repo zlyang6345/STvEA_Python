@@ -24,5 +24,3 @@ class STvEA:
 
     transfer_matrix = pd.DataFrame()
 
-    def __init__(self):
-        pass

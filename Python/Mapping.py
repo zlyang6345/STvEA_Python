@@ -1,10 +1,8 @@
-import math
 import warnings
-
+import STvEA
 import pandas as pd
 import numpy as np
 from scipy.sparse.linalg import svds
-
 from Python.irlb import irlb
 from scipy.spatial import KDTree
 from scipy.sparse import csr_matrix
@@ -12,8 +10,10 @@ from scipy.sparse import coo_matrix
 
 
 class Mapping:
-    def __init__(self):
-        pass
+    stvea = None
+
+    def __init__(self, stvea):
+        stvea = STvEA.STvEA()
 
     @staticmethod
     def run_cca(object1, object2, standardize=True, num_cc=30, option=1):
@@ -24,7 +24,7 @@ class Mapping:
         @param object2: A dataframe whose rows represent cells.
         @param standardize: a boolean value. If true, two dataframes would be standardized column-wise.
         @param num_cc: The number of dimensions after reduction.
-        @param option: a integer value to specify the way to perform SVD. 1 for irlb method. 2 for Scikit-learn svds.
+        @param option: an integer value to specify the way to perform SVD. 1 for irlb method. 2 for Scikit-learn svds.
         @return: a dataframe that combines the two reduced dataframes.
         """
         cells1 = object1.columns
@@ -39,10 +39,10 @@ class Mapping:
         mat3 = np.dot(object1.T, object2)
 
         if option == 1:
-            # irlb method
-            tuple = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000)
-            u = tuple[0]
-            v = tuple[2]
+            # IRLB method
+            tuples = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000)
+            u = tuples[0]
+            v = tuples[2]
         else:
             # scikit-learn method
             u, s, v = svds(mat3, k=num_cc, tol=1e-05)
@@ -56,14 +56,13 @@ class Mapping:
 
         return cca_data
 
-    @staticmethod
-    def map_codex_to_cite(stvea):
+    def map_codex_to_cite(self):
         """
         This function will calibrate CODEX protein expression levels to CITE-seq protein expression levels.
-        @param stvea: a STvEA object.
         """
         # find common proteins
-        common_protein = [protein for protein in stvea.codex_protein.columns if protein in stvea.cite_protein.columns]
+        common_protein = [protein for protein in self.stvea.codex_protein.columns if
+                          protein in self.stvea.cite_protein.columns]
 
         if len(common_protein) < 2:
             # for STvEA to properly transfer value from CODEX to CITE.
@@ -72,29 +71,29 @@ class Mapping:
             exit(1)
 
         # select common protein columns
-        codex_subset = stvea.codex_protein.loc[:, common_protein]
-        cite_subset = stvea.cite_protein.loc[:, common_protein]
+        codex_subset = self.stvea.codex_protein.loc[:, common_protein]
+        cite_subset = self.stvea.cite_protein.loc[:, common_protein]
 
-        cca_data = Mapping().run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
+        cca_data = Mapping.run_cca(cite_subset.T, codex_subset.T, True, num_cc=len(common_protein) - 1)
 
         cite_count = cite_subset.shape[0]
-        neighbors = Mapping().find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
-                                          query_emb=cca_data.iloc[cite_count:, :],
-                                          rna_mat=stvea.cite_latent,
-                                          k=80)
+        neighbors = Mapping.find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
+                                        query_emb=cca_data.iloc[cite_count:, :],
+                                        rna_mat=self.stvea.cite_latent,
+                                        k=80)
 
-        anchors = Mapping().find_anchor_pairs(neighbors, 20)
+        anchors = Mapping.find_anchor_pairs(neighbors, 20)
 
-        anchors = Mapping().filter_anchors(cite_subset, codex_subset, anchors, 100)
+        anchors = Mapping.filter_anchors(cite_subset, codex_subset, anchors, 100)
 
-        anchors = Mapping().score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
-                                          len(neighbors["nn_qq"]["nn_idx"]), 80)
+        anchors = Mapping.score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
+                                        len(neighbors["nn_qq"]["nn_idx"]), 80)
 
-        integration_matrix = Mapping().find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
+        integration_matrix = Mapping.find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
 
-        weights = Mapping().find_weights(neighbors, anchors, codex_subset, 100)
+        weights = Mapping.find_weights(neighbors, anchors, codex_subset, 100)
 
-        Mapping().transform_data_matrix(codex_subset, integration_matrix, weights, stvea)
+        Mapping.transform_data_matrix(codex_subset, integration_matrix, weights, self.stvea)
 
     @staticmethod
     def find_anchor_pairs(neighbors, k_anchor=5):
@@ -167,7 +166,7 @@ class Mapping:
 
         if cite_index == 1:
             # use Pearson Correlation distance to find NN in mRNA dataset.
-            nn_rr = Mapping().cor_nn(data=rna_mat, k=k + 1)
+            nn_rr = Mapping.cor_nn(data=rna_mat, k=k + 1)
             # use KDTree to find nearest neighbors among query-query.
             nn_qq_result = KDTree(query_emb).query(query_emb, k=k + 1, eps=eps)
             nn_qq = {"nn_idx": pd.DataFrame(nn_qq_result[1]),
@@ -178,7 +177,7 @@ class Mapping:
             nn_rr = {"nn_idx": pd.DataFrame(nn_rr_result[1]),
                      "nn_dists": pd.DataFrame(nn_rr_result[0])}
             # use Pearson Correlation distance to find NN in mRNA dataset.
-            nn_qq = Mapping().cor_nn(data=rna_mat, k=k + 1)
+            nn_qq = Mapping.cor_nn(data=rna_mat, k=k + 1)
 
         # find nearest neighbors among query-reference.
         nn_rq_result = KDTree(query_emb).query(ref_emb, k=k, eps=eps)
@@ -200,6 +199,7 @@ class Mapping:
         :param k: the number of nearest neighbors.
         :return: {'nn_idx': neighbors, 'nn_dists': distances}
         """
+
         if query is None:
             query = data
 
@@ -237,8 +237,8 @@ class Mapping:
         for i in range(len(cor_dist_df)):
             row = cor_dist_df.iloc[i, :]
             idx = row.argsort()[:k]
-            neighbors.iloc[i,] = idx
-            distances.iloc[i,] = row[idx]
+            neighbors.iloc[i, :] = idx
+            distances.iloc[i, :] = row[idx]
 
         # return values
         return {'nn_idx': neighbors.astype("uint32"), 'nn_dists': distances}
@@ -254,10 +254,9 @@ class Mapping:
         @param k_filter: the number of neighbors to find in the original data space.
         @return: a dataframe of filtered anchors.
         """
-        print("Filtering Anchors...")
 
-        nn1 = Mapping().cor_nn(data=query_mat, query=ref_mat, k=k_filter)
-        nn2 = Mapping().cor_nn(data=ref_mat, query=query_mat, k=k_filter)
+        nn1 = Mapping.cor_nn(data=query_mat, query=ref_mat, k=k_filter)
+        nn2 = Mapping.cor_nn(data=ref_mat, query=query_mat, k=k_filter)
 
         position1 = [False] * len(anchors)
         position2 = [False] * len(anchors)
@@ -269,7 +268,7 @@ class Mapping:
 
         anchors = anchors[np.logical_or(position1, position2)]
 
-        print("\tRetained ", len(anchors), " anchors")
+        print("Retained ", len(anchors), " anchors")
         return anchors
 
     @staticmethod
@@ -331,14 +330,14 @@ class Mapping:
         total_cells = num_cells_ref + num_cells_query
 
         # Construct nearest neighbour matrices
-        nn_m1 = Mapping().construct_nn_mat(neighbors['nn_rr']['nn_idx'].iloc[:, :k_score],
-                                           0, 0, (total_cells, total_cells))
-        nn_m2 = Mapping().construct_nn_mat(neighbors['nn_rq']['nn_idx'].iloc[:, :k_score],
-                                           0, num_cells_ref, (total_cells, total_cells))
-        nn_m3 = Mapping().construct_nn_mat(neighbors['nn_qr']['nn_idx'].iloc[:, :k_score],
-                                           num_cells_ref, 0, (total_cells, total_cells))
-        nn_m4 = Mapping().construct_nn_mat(neighbors['nn_qq']['nn_idx'].iloc[:, :k_score],
-                                           num_cells_ref, num_cells_ref, (total_cells, total_cells))
+        nn_m1 = Mapping.construct_nn_mat(neighbors['nn_rr']['nn_idx'].iloc[:, :k_score],
+                                         0, 0, (total_cells, total_cells))
+        nn_m2 = Mapping.construct_nn_mat(neighbors['nn_rq']['nn_idx'].iloc[:, :k_score],
+                                         0, num_cells_ref, (total_cells, total_cells))
+        nn_m3 = Mapping.construct_nn_mat(neighbors['nn_qr']['nn_idx'].iloc[:, :k_score],
+                                         num_cells_ref, 0, (total_cells, total_cells))
+        nn_m4 = Mapping.construct_nn_mat(neighbors['nn_qq']['nn_idx'].iloc[:, :k_score],
+                                         num_cells_ref, num_cells_ref, (total_cells, total_cells))
 
         # Combine all matrices
         k_matrix = nn_m1 + nn_m2 + nn_m3 + nn_m4
@@ -418,7 +417,7 @@ class Mapping:
         anchor_cellsq = anchors["cellq"]
 
         # find nearest anchors to each query cell
-        kna_query = Mapping().cor_nn(data=query_mat.iloc[anchor_cellsq, :], query=query_mat, k=k_weight)
+        kna_query = Mapping.cor_nn(data=query_mat.iloc[anchor_cellsq, :], query=query_mat, k=k_weight)
 
         nn_dists = kna_query["nn_dists"]
         nn_dists.index = cellsq
@@ -467,27 +466,25 @@ class Mapping:
         @param weights: weights of the anchors of each query cell.
         @return: a corrected query cell protein expression matrix.
         """
-        print("Integrating data")
         integration_matrix.index = weights.columns
         bv = weights.dot(integration_matrix)
         bv.index = query_mat.index
         integrated = query_mat - bv
         stvea.codex_protein_corrected = integrated
+        print("Data integrated")
         return
 
-    @staticmethod
-    def transfer_matrix(stvea,
+    def transfer_matrix(self,
                         k=None,
                         c=0.1):
         """
         This function transfers a matrix from one dataset to another based on the CorNN function.
-        @param stvea: a STvEA object.
         @param k: number of nearest neighbors to find.
         @param c: constant controls the width of the Gaussian kernel.
         """
 
-        from_dataset = stvea.cite_protein
-        to_dataset = stvea.codex_protein_corrected
+        from_dataset = self.stvea.cite_protein
+        to_dataset = self.stvea.codex_protein_corrected
 
         if k is None:
             if len(to_dataset) < 1000:
@@ -501,7 +498,7 @@ class Mapping:
         # weight each nn based on gaussian kernel of distance
         # create weighted nn matrix as sparse matrix
         # return nn matrix
-        nn_list = Mapping().cor_nn(from_dataset, to_dataset, k=k)
+        nn_list = Mapping.cor_nn(from_dataset, to_dataset, k=k)
         nn_idx = nn_list['nn_idx']
         nn_dists_exp = np.exp(nn_list['nn_dists'] / -c)
 
@@ -521,8 +518,8 @@ class Mapping:
         transfer_matrix = coo_matrix((data, (rows, cols)))
 
         # convert to CSR format for efficient arithmetic and matrix operations
-        stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
-        stvea.transfer_matrix.index = to_dataset.index
-        stvea.transfer_matrix.columns = from_dataset.index
+        self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
+        self.stvea.transfer_matrix.index = to_dataset.index
+        self.stvea.transfer_matrix.columns = from_dataset.index
 
         return
