@@ -573,7 +573,6 @@ class TestMapping(TestCase):
         mp = Mapping.Mapping(stvea)
         cl = Cluster.Cluster(stvea)
         data_processor = DataProcessor.DataProcessor(stvea)
-        data_processor.read()
         data_processor.filter_codex()
         data_processor.clean_codex()
         data_processor.clean_cite()

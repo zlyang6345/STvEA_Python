@@ -67,7 +67,6 @@ class Cluster:
         # add one to make clusters 1-indexed
         self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
                                                 index=self.stvea.codex_protein.index) + 1
-
         return
 
     def codex_umap(self,
@@ -170,8 +169,8 @@ class Cluster:
         return results
 
     def parameter_scan(self,
-                       min_cluster_size_range,
-                       min_sample_range,
+                       min_cluster_size_range=tuple(range(5, 21, 4)),
+                       min_sample_range=tuple(range(10, 41, 3)),
                        n_neighbors=50,
                        min_dist=0.1,
                        negative_sample_rate=50,

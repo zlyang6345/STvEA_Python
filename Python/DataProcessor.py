@@ -43,9 +43,9 @@ class DataProcessor:
                    codex_size="../Data/small_dataset/codex_size.csv",
                    codex_spatial="../Data/small_dataset/codex_spatial.csv",
                    codex_preprocess=False,
-                   codex_border=-1):
+                   codex_border=564000):
         """
-        This method will read cvs files related to CODEX.
+        This methodread_codex will read cvs files related to CODEX.
         @param codex_border: CODEX cells whose x and y are below this border will be kept in nm sense.
             564000 in nm sense is equivalent to 30000 in voxel sense.
             -1 means all CODEX cells will be kept.
@@ -79,8 +79,9 @@ class DataProcessor:
             self.stvea.codex_spatial["z"] = self.stvea.codex_spatial["z"] * 900
 
         if codex_border > 0:
+            # only keep CODEX cells that are within the given border.
             codex_subset = (
-                        (self.stvea.codex_spatial["x"] < codex_border) & (self.stvea.codex_spatial["y"] < codex_border))
+                    (self.stvea.codex_spatial["x"] < codex_border) & (self.stvea.codex_spatial["y"] < codex_border))
             self.stvea.codex_size = self.stvea.codex_size[codex_subset]
             self.stvea.codex_spatial = self.stvea.codex_spatial[codex_subset]
             self.stvea.codex_protein = self.stvea.codex_protein[codex_subset]
@@ -88,12 +89,13 @@ class DataProcessor:
 
         print("CODEX files read!")
 
-    def take_subset(self, amount_codex=-1, amount_cite=-1):
-
+    def take_subset(self,
+                    amount_codex=-1,
+                    amount_cite=-1):
         """
-        This function will take a subset of original data
-        @param amount_codex: the amount of records will be kept for CODEX
-        @param amount_cite: the amount of records will be kept for CITE_seq
+        This function will take a subset of the given amount of original data.
+        @param amount_codex: the amount of records will be kept for CODEX.
+        @param amount_cite: the amount of records will be kept for CITE_seq.
         """
 
         if len(self.stvea.cite_protein) > amount_cite > 0:
@@ -112,12 +114,10 @@ class DataProcessor:
 
             self.stvea.codex_protein = self.stvea.codex_protein[1:amount_codex]
 
-
-
     def filter_codex(self,
-                     size_lim=[1000, 25000],
-                     blank_lower=[-1200, -1200, -1200, -1200],
-                     blank_upper=[6000, 2500, 5000, 2500]
+                     size_lim=(1000, 25000),
+                     blank_lower=(-1200, -1200, -1200, -1200),
+                     blank_upper=(6000, 2500, 5000, 2500)
                      ):
         """
         We follow the gating strategy in Goltsev et al. to remove cells that are too small or large,
@@ -215,7 +215,7 @@ class DataProcessor:
         print("CODEX cleaned!")
 
     @staticmethod
-    def SSE(args, p_obs):
+    def sse(args, p_obs):
         """
         Calculates the sum of squared errors in binned probabilities of count data
 
@@ -271,7 +271,12 @@ class DataProcessor:
                col_name,
                maxit=500,
                factr=1e-9,
-               optim_init=None,
+               optim_init=(
+                [10, 60, 2, 0.5, 0.5],
+                [4.8, 50, 0.5, 2, 0.5],
+                [2, 18, 0.5, 2, 0.5],
+                [1, 3, 2, 2, 0.5],
+                [1, 3, 0.5, 2, 0.5]),
                verbose=False,
                method="l-bfgs-b"):
         """
@@ -286,6 +291,10 @@ class DataProcessor:
         @param factr: accuracy of optim function.
         @param optim_init: a ndarray of optional initialization parameters for the optim function,
                 if NULL, starts at five default parameter sets and picks the better one.
+                Sometimes negative binomial doesn't fit well with certain starting parameters, so try 5
+                optim is a general optimization function
+                [5,50,2,0.5,0.5] is the initial parameter
+                SSE is the function to minimize
         @return: cleaned protein expression.
         """
         # Create a probability distribution from the raw protein expression data
@@ -293,28 +302,15 @@ class DataProcessor:
         if verbose:
             print(col_name + ": ")
 
-        if optim_init is None:
-            # Sometimes negative binomial doesn't fit well with certain starting parameters, so try 5
-            # optim is a general optimization function
-            # [5,50,2,0.5,0.5] is the initial parameter
-            # SSE is the function to minimize
-            optim_init = [
-                [10, 60, 2, 0.5, 0.5],
-                [4.8, 50, 0.5, 2, 0.5],
-                [2, 18, 0.5, 2, 0.5],
-                [1, 3, 2, 2, 0.5],
-                [1, 3, 0.5, 2, 0.5]
-            ]
-
         bound = [(1e-8, None)] * 4 + [(1e-8, 1)]
         fits = list()
         scores = list()
 
         for index, array in enumerate(optim_init):
-            fits.append(minimize(self.SSE, array, args=p_obs,
-                                method=method, bounds=bound,
-                                options={'maxiter': maxit, 'ftol': factr}))
-            scores.append(self.SSE(fits[index].x, p_obs))
+            fits.append(minimize(self.sse, array, args=p_obs,
+                                 method=method, bounds=bound,
+                                 options={'maxiter': maxit, 'ftol': factr}))
+            scores.append(self.sse(fits[index].x, p_obs))
 
         m = min(scores)
         # pick the data with minimal SSE
@@ -367,9 +363,11 @@ class DataProcessor:
                    maxit=500,
                    factr=1e-9,
                    optim_init=None,
-                   ignore_warnings=True):
+                   ignore_warnings=True,
+                   method="l-bfgs-b"):
         """
-        This function will use mixture negative binomial distribution models to clean CITE-seq protein data
+        This function will use mixture negative binomial distribution models to clean CITE-seq protein data.
+        @param method: a string to specify the method that will be used to fit the mixture binomial distribution.
         @param ignore_warnings: a boolean value to specify whether to ignore warnings or not.
         @param maxit: the maximum number of iterations
         @param factr: accuracy of optim function
@@ -382,7 +380,7 @@ class DataProcessor:
         row_sums = self.stvea.cite_protein.sum(axis=1)
 
         self.stvea.cite_protein = self.stvea.cite_protein.apply(
-            lambda col: self.fit_nb(col, col.name, maxit=maxit, factr=factr, optim_init=optim_init))
+            lambda col: self.fit_nb(col, col.name, maxit=maxit, factr=factr, optim_init=optim_init, method=method))
 
         self.stvea.cite_protein = self.norm_cite(self.stvea.cite_protein, row_sums)
 

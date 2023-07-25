@@ -14,27 +14,6 @@ class Annotation:
     def __init__(self, stvea):
         self.stvea = stvea
 
-    def evaluation(self):
-        """
-        This function will evaluate the performance of label transferring.
-        """
-        # transfer labels
-        self.transfer_labels()
-        # show the CODEX protein expression level
-        cluster_index = self.cluster_heatmap(2, 2)
-        # user input CODEX cluster names
-        self.cluster_names(cluster_index, 2)
-        # calculate the percentage of labels that are consistent between transferred label and user-annotated CODEX labels.
-        codex_clusters = deepcopy(self.stvea.codex_cluster)
-        codex_clusters_names = codex_clusters.applymap(lambda x: self.stvea.codex_cluster_name_dict.get(x, "Unknowns"))
-        combined = pd.DataFrame({"Original": codex_clusters_names.iloc[:, 0],
-                                 "Transferred": self.stvea.codex_cluster_names_transferred.iloc[:, 0]},
-                                index=self.stvea.codex_protein_corrected.index)
-        # check whether transferred labels and user-input labels
-        equality = combined.apply(lambda x: x[0] == x[1], axis=1)
-        # print the result
-        print("Matched Proportion: " + str(equality.mean()))
-
     def transfer_labels(self):
         """
         This function will show the gene expression levels for each CITE-seq cluster, ask user to input name for each cluster.
