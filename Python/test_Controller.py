@@ -45,6 +45,8 @@ class TestController(TestCase):
 
     def test_overall_evaluation(self):
         cn = Controller.Controller()
+        cn.pipeline()
+        TestController.partial_evaluation(cn.stvea, cn.annotation)
 
 
 

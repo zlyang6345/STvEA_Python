@@ -1,0 +1,64 @@
+1.
+           cor_dist_df = query.apply(
+           lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
+           axis=1)
+
+           4 run's average = 708 sec for 3000 cells.
+
+2.
+            cor_dist_df = query.apply(
+            lambda row: data.apply(lambda inner_row: 1 - row.corr(inner_row, method="pearson"), axis=1),
+            axis=1)
+
+            round 1 = 56.46 sec
+            round 2 = 70 sec
+
+3.
+            query_dask = dd.from_pandas(query, npartitions=4)
+            data_dask = dd.from_pandas(data, npartitions=4)
+            cor_dist_df = query_dask.map_partitions(
+                lambda df: df.apply(
+                    lambda row: data_dask.map_partitions(
+                        lambda df_inner: df_inner.apply(
+                            lambda inner_row: 1 - row.corr(inner_row, method="pearson"), axis=1)
+                    ).compute(scheduler='processes'), axis=1)
+            ).compute(scheduler='processes')
+
+            round 1 = too slow, does not terminate
+
+4.
+                        # multithread
+            import concurrent.futures
+            chunk = ceil(query.shape[0] / npartition)
+
+            queries = list()
+            for i in range(npartition):
+                queries.append(query.iloc[chunk * i: chunk * (i+1), :])
+
+            def helper(query_sub):
+
+                cor_dist_df_sub = query_sub.apply(
+                    lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
+                    axis=1)
+
+                return cor_dist_df_sub
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(helper, queries[i]) for i in range(npartition)]
+                cor_dist_df_sub_list = [future.result() for future in futures]
+
+            cor_dist_df = pd.concat(cor_dist_df_sub_list)
+
+            4 runs' average = 873 for 3000 cells.
+
+5.
+            import concurrent.futures
+            chunk_num = ceil(query.shape[0] / npartition)
+            queries = [query.iloc[chunk_num * i: chunk_num * (i + 1), :] for i in range(npartition)]
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                futures = [executor.submit(Mapping.helper, queries[i], data) for i in range(npartition)]
+                cor_dist_df_sub_list = [future.result() for future in futures]
+
+            cor_dist_df = pd.concat(cor_dist_df_sub_list)
+
+            4 runs' average = 449 sec for 3000 cells.

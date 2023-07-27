@@ -1,3 +1,4 @@
+import time
 import warnings
 import umap.umap_ as umap
 import pandas as pd
@@ -39,6 +40,7 @@ class Cluster:
         1: use Pearson distance to find nearest neighbors on CODEX protein data.
         2: use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
         """
+        start = time.time()
         # find knn
         if knn_option == 1:
             # use Pearson distance to find nearest neighbors on CODEX protein data.
@@ -67,6 +69,8 @@ class Cluster:
         # add one to make clusters 1-indexed
         self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
                                                 index=self.stvea.codex_protein.index) + 1
+        end = time.time()
+        print(f"CODEX clusters found. Time: {round(end-start, 3)} sec")
         return
 
     def codex_umap(self,
@@ -186,15 +190,14 @@ class Cluster:
         @param metric: Pearson correlation should be used here.
         @return: a list of dictionaries that will record each HDBSCAN's scores and generated labels.
         """
+        start = time.time()
         cite_latent = self.stvea.cite_latent
         # Running UMAP on the CITE-seq latent space
-        print("Running UMAP on the CITE-seq latent space")
         reducer = umap.UMAP(n_components=cite_latent.shape[1], n_neighbors=n_neighbors, min_dist=min_dist,
                             negative_sample_rate=negative_sample_rate, metric=metric)
         umap_latent = reducer.fit_transform(cite_latent)
 
         # Running HDBSCAN on the UMAP space
-        print("Running HDBSCAN on the UMAP space")
         hdbscan_labels = Cluster.run_hdbscan(umap_latent, min_cluster_size_range, min_sample_range, metric=metric)
 
         # calculate scores
@@ -219,6 +222,8 @@ class Cluster:
         plt.show()
 
         self.stvea.hdbscan_scans = hdbscan_results
+        end = time.time()
+        print(f"Parameter scan done. Time: {round(end-start, 3)} sec")
         return
 
     @staticmethod
@@ -257,6 +262,8 @@ class Cluster:
         @param inconsistent_value: input parameter to fcluster determining where clusters are cut in the hierarchical tree.
         @param min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
         """
+        start = time.time()
+
         # initialize some variables
         hdbscan_results = self.stvea.hdbscan_scans
         num_cells = len(hdbscan_results[0]['cluster_labels'])
@@ -319,4 +326,6 @@ class Cluster:
         # store the result in the STvEA object
         self.stvea.cite_cluster = pd.DataFrame(map_series[original_array].values)
 
+        end = time.time()
+        print(f"Consensus cluster done. Time: {round(end-start, 3)} sec")
         return

@@ -8,6 +8,8 @@ import Cluster
 import DataProcessor
 import Mapping
 import STvEA
+import Controller
+import time
 
 
 class TestMapping(TestCase):
@@ -60,14 +62,45 @@ class TestMapping(TestCase):
                          [0.28174246, 0.07971738, 0.89442353, 0.69026102]])
 
         data = pd.DataFrame(data)
-        result = Mapping.Mapping.cor_nn(data, data)
+        result = Mapping.Mapping.cor_nn(data, data, option=3, npartition=3)
         nn_idx = result["nn_idx"]
         assert list(nn_idx.iloc[0, :]) == list([0, 8, 7, 3, 9])
+
+    def test_cor_nn_speed(self):
+        controller = Controller.Controller()
+        data_processor = DataProcessor.DataProcessor(controller.stvea)
+        mapping = Mapping.Mapping(controller.stvea)
+        data_processor.read_codex(codex_border=-1,
+                                  codex_blanks="../Data/raw_dataset/codex_blanks.csv",
+                                  codex_protein="../Data/raw_dataset/codex_protein.csv",
+                                  codex_size="../Data/raw_dataset/codex_size.csv",
+                                  codex_spatial="../Data/raw_dataset/codex_spatial.csv")
+        data_processor.take_subset(amount_codex=3000)
+        start = time.time()
+        rounds = 4
+        for i in range(rounds):
+            mapping.cor_nn(data=controller.stvea.codex_protein, option=1, npartition=3)
+        end = time.time()
+        print(f"Option 1 Average time: {round((end - start) / rounds, 3)}")
+
+        start = time.time()
+        for i in range(rounds):
+            mapping.cor_nn(data=controller.stvea.codex_protein, option=2, npartition=3)
+        end = time.time()
+        print(f"Option 2 Average time: {round((end - start) / rounds, 3)}")
+
+        start = time.time()
+        for i in range(rounds):
+            mapping.cor_nn(data=controller.stvea.codex_protein, option=3, npartition=3)
+        end = time.time()
+        print(f"Option 3 Average time: {round((end - start) / rounds, 3)}")
+
 
     def test_find_nn_rna(self):
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor(stvea)
-        data_processor.read()
+        data_processor.read_cite()
+        data_processor.read_codex(codex_border=-1)
 
         r_cca_result = pd.read_csv("../Tests/r_cca_matrix.csv", index_col=0, header=0)
         r_cca_result = r_cca_result.apply(pd.to_numeric)
@@ -395,7 +428,8 @@ class TestMapping(TestCase):
         # 1000 cells
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor(stvea)
-        data_processor.read()
+        data_processor.read_cite()
+        data_processor.read_codex(codex_border=-1)
 
         data_processor.filter_codex()
         data_processor.clean_codex()
@@ -446,7 +480,8 @@ class TestMapping(TestCase):
         # this test will use python's own cca common space data and R's cleaned data.
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor(stvea)
-        data_processor.read()
+        data_processor.read_cite()
+        data_processor.read_codex(codex_border=-1)
 
         stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
         stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
@@ -496,7 +531,8 @@ class TestMapping(TestCase):
         # this test will use R's generated CCA common space and R's cleaned data.
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor(stvea)
-        data_processor.read()
+        data_processor.read_cite()
+        data_processor.read_codex(codex_border=-1)
 
         stvea.codex_protein = pd.read_csv("../Tests/r_codex_clean.csv", index_col=0, header=0).astype("float64")
         stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")

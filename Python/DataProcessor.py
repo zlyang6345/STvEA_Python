@@ -5,7 +5,7 @@ from sklearn.mixture import GaussianMixture
 from scipy.stats import norm
 from scipy.stats import nbinom
 from scipy.optimize import minimize
-
+import time
 import STvEA
 
 
@@ -26,6 +26,8 @@ class DataProcessor:
         @param cite_protein: a string to specify the address of CITE-seq protein dataset.
         @param cite_mrna: a string to specify the address of CITE-seq mRNA file.
         """
+        start = time.time()
+
         self.stvea.cite_latent = pd.read_csv(cite_latent, index_col=0, header=0)
         self.stvea.cite_latent = self.stvea.cite_latent.apply(pd.to_numeric)
 
@@ -35,7 +37,9 @@ class DataProcessor:
         self.stvea.cite_mRNA = pd.read_csv(cite_mrna, index_col=0, header=0)
         self.stvea.cite_mRNA = self.stvea.cite_mRNA.apply(pd.to_numeric)
 
-        print("CITE-seq data read!")
+        end = time.time()
+
+        print("CITE-seq data read! Time: ", round(end-start, 3), "sec")
 
     def read_codex(self,
                    codex_blanks="../Data/small_dataset/codex_blanks.csv",
@@ -45,7 +49,7 @@ class DataProcessor:
                    codex_preprocess=False,
                    codex_border=564000):
         """
-        This methodread_codex will read cvs files related to CODEX.
+        This method read_codex will read cvs files related to CODEX.
         @param codex_border: CODEX cells whose x and y are below this border will be kept in nm sense.
             564000 in nm sense is equivalent to 30000 in voxel sense.
             -1 means all CODEX cells will be kept.
@@ -56,6 +60,7 @@ class DataProcessor:
         @param codex_size: a string to specify the address of CODEX size dataset.
         @param codex_spatial: a string to specify the address of CODEX spatial dataset.
         """
+        start = time.time()
 
         # read
         self.stvea.codex_blanks = pd.read_csv(codex_blanks, index_col=0, header=0)
@@ -87,7 +92,8 @@ class DataProcessor:
             self.stvea.codex_protein = self.stvea.codex_protein[codex_subset]
             self.stvea.codex_blanks = self.stvea.codex_blanks[codex_subset]
 
-        print("CODEX files read!")
+        end = time.time()
+        print("CODEX files read! Time:", round(end-start, 3), "sec")
 
     def take_subset(self,
                     amount_codex=-1,
@@ -97,22 +103,21 @@ class DataProcessor:
         @param amount_codex: the amount of records will be kept for CODEX.
         @param amount_cite: the amount of records will be kept for CITE_seq.
         """
-
         if len(self.stvea.cite_protein) > amount_cite > 0:
-            self.stvea.cite_protein = self.stvea.cite_protein[1:amount_cite]
+            self.stvea.cite_protein = self.stvea.cite_protein[:amount_cite]
 
-            self.stvea.cite_latent = self.stvea.cite_latent[1:amount_cite]
+            self.stvea.cite_latent = self.stvea.cite_latent[:amount_cite]
 
-            self.stvea.cite_mRNA = self.stvea.cite_mRNA[1:amount_cite]
+            self.stvea.cite_mRNA = self.stvea.cite_mRNA[:amount_cite]
 
         if len(self.stvea.codex_blanks) > amount_codex > 0:
-            self.stvea.codex_blanks = self.stvea.codex_blanks[1:amount_codex]
+            self.stvea.codex_blanks = self.stvea.codex_blanks[:amount_codex]
 
-            self.stvea.codex_size = self.stvea.codex_size[1:amount_codex]
+            self.stvea.codex_size = self.stvea.codex_size[:amount_codex]
 
-            self.stvea.codex_spatial = self.stvea.codex_spatial[1:amount_codex]
+            self.stvea.codex_spatial = self.stvea.codex_spatial[:amount_codex]
 
-            self.stvea.codex_protein = self.stvea.codex_protein[1:amount_codex]
+            self.stvea.codex_protein = self.stvea.codex_protein[:amount_codex]
 
     def filter_codex(self,
                      size_lim=(1000, 25000),
@@ -130,6 +135,7 @@ class DataProcessor:
         @param blank_lower: a vector of length 4, default to [-1200, -1200, -1200, -1200]
         @param blank_upper: a vector of length 4, default to [6000, 2500, 5000, 2500]
         """
+        start = time.time()
         # If size_lim is not specified,
         # it defaults to the 0.025 and 0.99 quantiles of the size vector.
         if size_lim is None or size_lim[0] >= size_lim[1]:
@@ -170,9 +176,10 @@ class DataProcessor:
         self.stvea.codex_blanks = self.stvea.codex_blanks[mask]
         self.stvea.codex_protein = self.stvea.codex_protein[mask]
         self.stvea.codex_spatial = self.stvea.codex_spatial[mask]
+        end = time.time()
 
         # print the result
-        print("Codex filtered! With ", len(self.stvea.codex_blanks), " records preserved.")
+        print("Codex filtered! With ", len(self.stvea.codex_blanks), " records preserved.", "Time:", round(end-start, 3), "sec")
 
     def clean_codex(self):
         """
@@ -180,6 +187,7 @@ class DataProcessor:
         levels of each protein. The signal expression is taken as the cumulative probability according to the
         Gaussian with the higher mean.
         """
+        start = time.time()
         # subtracts the minimum value of all the elements in codex_protein (a data frame) from each element in the
         # data frame
         codex_protein_norm = self.stvea.codex_protein - self.stvea.codex_protein.min().min()
@@ -212,7 +220,8 @@ class DataProcessor:
             self.stvea.codex_protein[col] = norm.cdf(codex_protein_norm[col], loc=gm.means_[signal, 0],
                                                      scale=np.sqrt(gm.covariances_[signal, 0, 0]))
 
-        print("CODEX cleaned!")
+        end = time.time()
+        print("CODEX cleaned!", "Time:", round(end-start, 3), "sec")
 
     @staticmethod
     def sse(args, p_obs):
@@ -373,6 +382,7 @@ class DataProcessor:
         @param factr: accuracy of optim function
         @param optim_init: a vector of with initialization
         """
+        start = time.time()
         if ignore_warnings:
             warnings.simplefilter("ignore")
 
@@ -383,5 +393,5 @@ class DataProcessor:
             lambda col: self.fit_nb(col, col.name, maxit=maxit, factr=factr, optim_init=optim_init, method=method))
 
         self.stvea.cite_protein = self.norm_cite(self.stvea.cite_protein, row_sums)
-
-        print("CITE-seq protein cleaned, overall SSE:", str(self.overall_sse))
+        end = time.time()
+        print(f"CITE-seq protein cleaned, overall SSE: {str(self.overall_sse)} Time: {round(end-start, 3)} sec")

@@ -8,35 +8,34 @@ import pandas as pd
 
 
 class Controller:
-    st = STvEA.STvEA()
-    dpr = None
-    cl = None
-    mp = None
-    an = None
+    stvea = STvEA.STvEA()
+    data_processor = None
+    cluster = None
+    mapping = None
+    annotation = None
 
-    #
     def __init__(self):
-        self.st = STvEA.STvEA()
-        self.dpr = DataProcessor.DataProcessor(self.st)
-        self.cl = Cluster.Cluster(self.st)
-        self.mp = Mapping.Mapping(self.st)
-        self.an = Annotation.Annotation(self.st)
+        self.stvea = STvEA.STvEA()
+        self.data_processor = DataProcessor.DataProcessor(self.stvea)
+        self.cluster = Cluster.Cluster(self.stvea)
+        self.mapping = Mapping.Mapping(self.stvea)
+        self.annotation = Annotation.Annotation(self.stvea)
 
     def pipeline(self,
                  # read_codex args
-                 codex_blanks="../Data/small_dataset/codex_blanks.csv",
-                 codex_protein="../Data/small_dataset/codex_protein.csv",
-                 codex_size="../Data/small_dataset/codex_size.csv",
-                 codex_spatial="../Data/small_dataset/codex_spatial.csv",
+                 codex_blanks="../Data/raw_dataset/codex_blanks.csv",
+                 codex_protein="../Data/raw_dataset/codex_protein.csv",
+                 codex_size="../Data/raw_dataset/codex_size.csv",
+                 codex_spatial="../Data/raw_dataset/codex_spatial.csv",
                  codex_preprocess=True,
                  codex_border=564000,
                  # read_cite args
-                 cite_latent="../Data/small_dataset/cite_latent.csv",
-                 cite_protein="../Data/small_dataset/cite_protein.csv",
-                 cite_mrna="../Data/small_dataset/cite_mRNA.csv",
+                 cite_latent="../Data/raw_dataset/cite_latent.csv",
+                 cite_protein="../Data/raw_dataset/cite_protein.csv",
+                 cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
                  # take_subset args
-                 amount_codex=-1,
-                 amount_cite=-1,
+                 amount_codex=1000,
+                 amount_cite=1000,
                  # filter_codex args
                  size_lim=(1000, 25000),
                  blank_lower=(-1200, -1200, -1200, -1200),
@@ -79,50 +78,49 @@ class Controller:
         This is the ultimate pipeline of STvEA to transfer labels from CITE-seq data to CODEX data.
         """
         # read and clean data
-        self.dpr.read_codex(codex_blanks=codex_blanks,
-                            codex_protein=codex_protein,
-                            codex_size=codex_size,
-                            codex_spatial=codex_spatial,
-                            codex_preprocess=codex_preprocess,
-                            codex_border=codex_border
-                            )
-        self.dpr.read_cite(cite_latent=cite_latent,
-                           cite_protein=cite_protein,
-                           cite_mrna=cite_mrna)
-        self.dpr.take_subset(amount_codex=amount_codex,
-                             amount_cite=amount_cite)
-        self.dpr.filter_codex(size_lim=size_lim,
-                              blank_lower=blank_lower,
-                              blank_upper=blank_upper)
-        self.dpr.clean_codex()
-        self.dpr.clean_cite(maxit=maxit,
-                            factr=factr,
-                            optim_init=optim_init,
-                            ignore_warnings=ignore_warnings,
-                            method=clean_cite_method)
+        self.data_processor.read_codex(codex_blanks=codex_blanks,
+                                       codex_protein=codex_protein,
+                                       codex_size=codex_size,
+                                       codex_spatial=codex_spatial,
+                                       codex_preprocess=codex_preprocess,
+                                       codex_border=codex_border
+                                       )
+        self.data_processor.read_cite(cite_latent=cite_latent,
+                                      cite_protein=cite_protein,
+                                      cite_mrna=cite_mrna)
+        self.data_processor.take_subset(amount_codex=amount_codex,
+                                        amount_cite=amount_cite)
+        self.data_processor.filter_codex(size_lim=size_lim,
+                                         blank_lower=blank_lower,
+                                         blank_upper=blank_upper)
+        self.data_processor.clean_codex()
+        self.data_processor.clean_cite(maxit=maxit,
+                                       factr=factr,
+                                       optim_init=optim_init,
+                                       ignore_warnings=ignore_warnings,
+                                       method=clean_cite_method)
 
         # cluster CODEX cells
-        self.cl.cluster_codex(k=cluster_codex_k,
-                              knn_option=cluster_codex_knn_option)
+        self.cluster.cluster_codex(k=cluster_codex_k,
+                                   knn_option=cluster_codex_knn_option)
         # cluster CITE cells
-        self.cl.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
-                               min_sample_range=parameter_scan_min_sample_range,
-                               n_neighbors=parameter_scan_n_neighbors,
-                               min_dist=parameter_scan_min_dist,
-                               negative_sample_rate=parameter_scan_negative_sample_rate,
-                               metric=parameter_scan_metric)
-        self.cl.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
-                                  inconsistent_value=consensus_cluster_inconsistent_value,
-                                  min_cluster_size=consensus_cluster_min_cluster_size)
+        self.cluster.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
+                                    min_sample_range=parameter_scan_min_sample_range,
+                                    n_neighbors=parameter_scan_n_neighbors,
+                                    min_dist=parameter_scan_min_dist,
+                                    negative_sample_rate=parameter_scan_negative_sample_rate,
+                                    metric=parameter_scan_metric)
+        self.cluster.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
+                                       inconsistent_value=consensus_cluster_inconsistent_value,
+                                       min_cluster_size=consensus_cluster_min_cluster_size)
 
         # map the CODEX cells to CITE-seq cells.
-        self.mp.map_codex_to_cite(k_find_nn=k_find_nn,
-                                  k_find_anchor=k_find_anchor,
-                                  k_filter_anchor=k_filter_anchor,
-                                  k_score_anchor=k_score_anchor,
-                                  k_find_weights=k_find_weights)
+        self.mapping.map_codex_to_cite(k_find_nn=k_find_nn,
+                                       k_find_anchor=k_find_anchor,
+                                       k_filter_anchor=k_filter_anchor,
+                                       k_score_anchor=k_score_anchor,
+                                       k_find_weights=k_find_weights)
 
         # create transfer matrix to transfer values from CITE-seq to CODEX
-        self.mp.transfer_matrix(k=k_transfer_matrix,
-                                c=c_transfer_matrix)
-
+        self.mapping.transfer_matrix(k=k_transfer_matrix,
+                                     c=c_transfer_matrix)

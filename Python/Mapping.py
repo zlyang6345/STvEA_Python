@@ -1,4 +1,7 @@
+import time
 import warnings
+from math import ceil, floor
+
 import STvEA
 import pandas as pd
 import numpy as np
@@ -7,6 +10,7 @@ from Python.irlb import irlb
 from scipy.spatial import KDTree
 from scipy.sparse import csr_matrix
 from scipy.sparse import coo_matrix
+import dask.dataframe as dd
 
 
 class Mapping:
@@ -27,6 +31,7 @@ class Mapping:
         @param option: an integer value to specify the way to perform SVD. 1 for irlb method. 2 for Scikit-learn svds.
         @return: a dataframe that combines the two reduced dataframes.
         """
+        start = time.time()
         cells1 = object1.columns
         cells2 = object2.columns
 
@@ -54,6 +59,8 @@ class Mapping:
         cca_data = pd.DataFrame(cca_data, index=list(cells1) + list(cells2),
                                 columns=["CC" + str(i + 1) for i in range(num_cc)])
 
+        end = time.time()
+        print(f"CCA space found. Time: {round(end - start, 3)} sec")
         return cca_data
 
     @staticmethod
@@ -66,6 +73,7 @@ class Mapping:
          Fewer k_anchor should mean higher quality of anchors.
         @return: A dataframe that has three columns: cell r, cell q, and score.
         """
+        start = time.time()
 
         # some routine check
         max_nn = max(neighbors['nn_rq']['nn_idx'].shape[1], neighbors['nn_qr']['nn_idx'].shape[1])
@@ -106,7 +114,8 @@ class Mapping:
 
         # convert to dataframe
         anchors = pd.DataFrame(anchors).astype("uint32")
-        print("Mutual nearest neighborhoods found!")
+        end = time.time()
+        print(f"Mutual nearest neighborhoods found! Time: {round(end - start, 3)} sec")
         return anchors
 
     @staticmethod
@@ -124,7 +133,7 @@ class Mapping:
                 'cellsr': ref_emb.index.values, 'cellsq': query_emb.index.values}
                 nn_rr and nn_qq are also dictionary that contain "nn_idx" and "nn_dists"
         """
-
+        start = time.time()
         if cite_index == 1:
             # use Pearson Correlation distance to find NN in mRNA dataset.
             nn_rr = Mapping.cor_nn(data=rna_mat, k=k + 1)
@@ -148,13 +157,24 @@ class Mapping:
         nn_qr = {"nn_idx": pd.DataFrame(nn_qr_result[1]),
                  "nn_dists": pd.DataFrame(nn_qr_result[0])}
 
-        print("Neighborhoods found!")
+        end = time.time()
+
+        print(f"Neighborhoods found! Time: {round(end - start, 3)} sec")
 
         return {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq,
                 'cellsr': ref_emb.index.values, 'cellsq': query_emb.index.values}
 
     @staticmethod
-    def cor_nn(data, query=None, k=5):
+    def helper(query_sub, data):
+
+        cor_dist_df_sub = query_sub.apply(
+            lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
+            axis=1)
+
+        return cor_dist_df_sub
+
+    @staticmethod
+    def cor_nn(data, query=None, k=5, option=2, npartition = 3):
         """
         This function can find nearest neighbors (rows) in "data" dataset for each record (row) in "query" dataset.
         :param data: A pandas dataframe.
@@ -162,7 +182,10 @@ class Mapping:
         :param k: the number of nearest neighbors.
         :return: {'nn_idx': neighbors, 'nn_dists': distances}
         """
+        global cor_dist_df
 
+        t = list()
+        t.append(time.time())
         if query is None:
             query = data
 
@@ -174,36 +197,41 @@ class Mapping:
         neighbors = pd.DataFrame(index=range(len(query)), columns=range(k), dtype='uint32')
         distances = pd.DataFrame(index=range(len(query)), columns=range(k), dtype='float64')
 
-        # for i in range(len(query)):
-        #     row = query.iloc[i, :]
-        #     # calculate the Pearson correlation and then convert it into dissimilarity
-        #     # each row in the query and each row in the data will be fed into pearsonr to calculate pearson correlation distance
-        #     cor_dist_df = data.apply(lambda data_row: 1 - pearsonr(row, data_row)[0], axis=1)
-        #
-        #     # get indices of k nearest neighbors
-        #     idx = cor_dist_df.argsort()[:k]
-        #     neighbors.iloc[i, ] = idx
-        #     distances.iloc[i, ] = cor_dist_df[idx]
+        if option == 1:
+            # regular way
+            cor_dist_df = query.apply(
+                lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
+                axis=1)
 
-        # alternative implementation may be faster, but require more RAM.
-        # calculate the Pearson correlation and then convert it into dissimilarity
-        # each row in the query and each row in the data will be fed into pearsonr to calculate pearson correlation distance
-        # cor_dist_df = query.apply(lambda row: data.apply(lambda inner_row: 1 - pearsonr(row, inner_row)[0], axis=1), axis=1)
-        # 5 min
+        elif option == 2:
+            # multithread
+            import concurrent.futures
+            chunk = ceil(query.shape[0] / npartition)
+            queries = [query.iloc[chunk * i: chunk * (i + 1), :] for i in range(npartition)]
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(Mapping.helper, queries[i], data) for i in range(npartition)]
+                cor_dist_df_sub_list = [future.result() for future in futures]
+            cor_dist_df = pd.concat(cor_dist_df_sub_list)
 
-        cor_dist_df = query.apply(
-            lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
-            axis=1)
-        # 30 sec
+        elif option == 3:
+            # multiprocess
+            import concurrent.futures
+            chunk_num = ceil(query.shape[0] / npartition)
+            queries = [query.iloc[chunk_num * i: chunk_num * (i + 1), :] for i in range(npartition)]
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                futures = [executor.submit(Mapping.helper, queries[i], data) for i in range(npartition)]
+                cor_dist_df_sub_list = [future.result() for future in futures]
+
+            cor_dist_df = pd.concat(cor_dist_df_sub_list)
 
         # get indices of k nearest neighbors
-        for i in range(len(cor_dist_df)):
+        for i in range(cor_dist_df.shape[0]):
             row = cor_dist_df.iloc[i, :]
             idx = row.argsort()[:k]
             neighbors.iloc[i, :] = idx
             distances.iloc[i, :] = row[idx]
 
-        # return values
+        t.append(time.time())
         return {'nn_idx': neighbors.astype("uint32"), 'nn_dists': distances}
 
     @staticmethod
@@ -217,7 +245,7 @@ class Mapping:
         @param k_filter: the number of neighbors to find in the original data space.
         @return: a dataframe of filtered anchors.
         """
-
+        start = time.time()
         nn1 = Mapping.cor_nn(data=query_mat, query=ref_mat, k=k_filter)
         nn2 = Mapping.cor_nn(data=ref_mat, query=query_mat, k=k_filter)
 
@@ -230,8 +258,8 @@ class Mapping:
             i += 1
 
         anchors = anchors[np.logical_or(position1, position2)]
-
-        print("Retained ", len(anchors), " anchors!")
+        end = time.time()
+        print(f"Retained {len(anchors)} anchors! Time: {round(end - start, 3)} sec")
         return anchors
 
     @staticmethod
@@ -274,6 +302,7 @@ class Mapping:
         @param k_score:
         @return:
         """
+        start = time.time()
         # Convert anchor data frame
         anchor_df = pd.DataFrame(anchors)
         anchor_df['cellq'] += num_cells_ref
@@ -328,6 +357,8 @@ class Mapping:
         anchor_new['score'] = (anchor_new['score'] - min_score) / (max_score - min_score)
         anchor_new['score'] = anchor_new['score'].clip(0, 1)
         anchors.sort_values("cellq", ascending=True, inplace=True)
+        end = time.time()
+        print(f"Score anchors done. Time: {round(end - start, 3)} sec")
         return anchor_new
 
     @staticmethod
@@ -344,7 +375,7 @@ class Mapping:
         Returns:
         pd.DataFrame: integration matrix
         """
-
+        start = time.time()
         # Extract cell expression proteins
         data_use_r = ref_mat.iloc[anchors["cellr"]].reset_index(drop=True)
         data_use_q = query_mat.iloc[anchors["cellq"]].reset_index(drop=True)
@@ -355,7 +386,8 @@ class Mapping:
         # Set the row names (index) to anchors_q
         integration_matrix.index = neighbors["cellsq"][anchors["cellq"]]
 
-        print("Integration vectors found!")
+        end = time.time()
+        print(f"Integration vectors found! Time: {round(end - start, 3)} sec")
 
         return integration_matrix
 
@@ -371,6 +403,7 @@ class Mapping:
         @param sd_weight: standard deviation of the Gaussian kernel.
         @return: a dataframe whose row represents query cell and column represents anchors.
         """
+        start = time.time()
 
         # initialize some variables
         cellsr = neighbors["cellsr"]
@@ -415,8 +448,10 @@ class Mapping:
         # normalize by row
         weights = weights.div(weights.sum(axis=1), axis=0)
 
+        end = time.time()
+
         # print a message.
-        print("Anchor weights found!")
+        print(f"Anchor weights found! Time: {round(end - start, 3)} sec")
 
         return weights
 
@@ -430,12 +465,14 @@ class Mapping:
         @param weights: weights of the anchors of each query cell.
         @return: a corrected query cell protein expression matrix.
         """
+        start = time.time()
         integration_matrix.index = weights.columns
         bv = weights.dot(integration_matrix)
         bv.index = query_mat.index
         integrated = query_mat - bv
         stvea.codex_protein_corrected = integrated
-        print("Data integrated!")
+        end = time.time()
+        print(f"Data integrated! Time: {round(end - start, 3)} sec")
         return
 
     def map_codex_to_cite(self,
@@ -490,7 +527,7 @@ class Mapping:
         @param k: number of nearest neighbors to find.
         @param c: constant controls the width of the Gaussian kernel.
         """
-
+        start = time.time()
         from_dataset = self.stvea.cite_protein
         to_dataset = self.stvea.codex_protein_corrected
 
@@ -529,5 +566,6 @@ class Mapping:
         self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
         self.stvea.transfer_matrix.index = to_dataset.index
         self.stvea.transfer_matrix.columns = from_dataset.index
-
+        end = time.time()
+        print(f"Transfer matrix constructed. Time: {round(end - start, 3)} sec")
         return
