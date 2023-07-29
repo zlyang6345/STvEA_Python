@@ -1,8 +1,6 @@
 import time
 import warnings
-from math import ceil, floor
-
-import STvEA
+from math import ceil
 import pandas as pd
 import numpy as np
 from scipy.sparse.linalg import svds
@@ -10,7 +8,6 @@ from Python.irlb import irlb
 from scipy.spatial import KDTree
 from scipy.sparse import csr_matrix
 from scipy.sparse import coo_matrix
-import dask.dataframe as dd
 
 
 class Mapping:
@@ -174,13 +171,15 @@ class Mapping:
         return cor_dist_df_sub
 
     @staticmethod
-    def cor_nn(data, query=None, k=5, option=2, npartition = 3):
+    def cor_nn(data, query=None, k=5, option=2, npartition=3):
         """
         This function can find nearest neighbors (rows) in "data" dataset for each record (row) in "query" dataset.
-        :param data: A pandas dataframe.
-        :param query: A pandas dataframe.
-        :param k: the number of nearest neighbors.
-        :return: {'nn_idx': neighbors, 'nn_dists': distances}
+        @param data: a pandas dataframe.
+        @param option: an integer to specify the computational method to find nearest neighbors.
+        @param npartition: an integer to specify the number of partitions of query dataset.
+        @param query: a pandas dataframe.
+        @param k: the number of nearest neighbors.
+        @return: {'nn_idx': neighbors, 'nn_dists': distances}
         """
         global cor_dist_df
 
@@ -192,16 +191,19 @@ class Mapping:
         # make sure the input is a dataframe
         query = pd.DataFrame(query)
         data = pd.DataFrame(data)
-
         # initialize neighbors and distances matrices
         neighbors = pd.DataFrame(index=range(len(query)), columns=range(k), dtype='uint32')
         distances = pd.DataFrame(index=range(len(query)), columns=range(k), dtype='float64')
 
-        if option == 1:
-            # regular way
+        if option == 0:
+            # regular way, fairly slow
             cor_dist_df = query.apply(
-                lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
-                axis=1)
+                                    lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
+                                axis=1)
+
+        elif option == 1:
+
+            pass
 
         elif option == 2:
             # multithread
@@ -215,6 +217,7 @@ class Mapping:
 
         elif option == 3:
             # multiprocess
+            # much faster than previous two.
             import concurrent.futures
             chunk_num = ceil(query.shape[0] / npartition)
             queries = [query.iloc[chunk_num * i: chunk_num * (i + 1), :] for i in range(npartition)]
@@ -223,6 +226,93 @@ class Mapping:
                 cor_dist_df_sub_list = [future.result() for future in futures]
 
             cor_dist_df = pd.concat(cor_dist_df_sub_list)
+
+        elif option == 4:
+            # invoke R's function
+            from rpy2.robjects import pandas2ri
+            import rpy2.robjects as ro
+            from rpy2.robjects.conversion import localconverter
+
+            with localconverter(ro.default_converter + pandas2ri.converter):
+
+                # get the conversion context
+                conv = ro.conversion.get_conversion()
+
+                # convert pandas DataFrames to R data frames
+                r_data = conv.py2rpy(data)
+                r_query = conv.py2rpy(query)
+
+                # define the R function as a string
+                func = """
+                function(data, query){
+                    cor_dist_df <- apply(query, 1, function(row) {
+                                        apply(data, 1, function(inner_row) {1 - cor(row, inner_row)})
+                                    })
+                    # convert to a data frame
+                    cor_dist_df <- as.data.frame(cor_dist_df)
+                    return(cor_dist_df)
+                }
+                """
+
+                # execute the R function with ro.r()
+                cor_nn_r_internal = ro.r(func)
+
+                # call the R function with the data
+                result = cor_nn_r_internal(r_data, r_query)
+
+                # convert R DataFrame to pandas DataFrame
+                cor_dist_df = conv.rpy2py(result)
+
+        elif option == 5:
+            # entirely rely on R's function.
+            from rpy2.robjects import pandas2ri
+            import rpy2.robjects as ro
+            from rpy2.robjects.conversion import localconverter
+            from rpy2.robjects.packages import importr
+
+            base = importr('base')
+            with localconverter(ro.default_converter + pandas2ri.converter):
+                # get the conversion context
+                conv = ro.conversion.get_conversion()
+
+                # convert pandas DataFrames to R data frames
+                r_data = conv.py2rpy(data)
+                r_query = conv.py2rpy(query)
+
+                # define the R function as a string
+                func = """
+                function(
+                  data,
+                  query = data,
+                  k = 5
+                ) {
+                      t_data <- t(data)
+                      query <- as.matrix(query)
+                      neighbors <- matrix(rep(0, k*nrow(query)), ncol=k)
+                      distances <- matrix(rep(0, k*nrow(query)), ncol=k)
+
+                      for (i in 1:nrow(query)) {
+                          cor_dist <- 1 - cor(query[i,], t_data)
+                          idx <- order(cor_dist)[1:k]
+                          neighbors[i,] <- idx
+                          distances[i,] <- cor_dist[idx]
+                      }
+                      neighbors = as.data.frame(apply(neighbors, 2, as.integer) - 1)
+                      distances = as.data.frame(distances)
+                      return(list(nn_idx=neighbors, nn_dists=distances))
+                }
+                """
+
+                # execute the R function with ro.r()
+                cor_nn_r_internal = ro.r(func)
+
+                # call the R function with the data
+                result = cor_nn_r_internal(r_data, r_query, k)
+
+                # Convert the R list of data frames to a Python dictionary of pandas data frames
+                py_result = {key: conv.rpy2py(result[key]) for key in result.keys()}
+
+                return py_result
 
         # get indices of k nearest neighbors
         for i in range(cor_dist_df.shape[0]):

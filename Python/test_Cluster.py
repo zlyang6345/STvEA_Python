@@ -14,7 +14,8 @@ class TestCluster(TestCase):
         data_processor = DataProcessor.DataProcessor(stvea)
         cl = Cluster.Cluster(stvea)
 
-        data_processor.read()
+        data_processor.read_codex()
+        data_processor.read_cite()
         # data_processor.filter_codex()
         data_processor.clean_codex()
         cl.codex_umap()
@@ -42,7 +43,8 @@ class TestCluster(TestCase):
         data_processor = DataProcessor.DataProcessor(stvea)
         cl = Cluster.Cluster(stvea)
 
-        data_processor.read()
+        data_processor.read_codex()
+        data_processor.read_cite()
         data_processor.clean_codex()
         cl.codex_umap()
         fig, ax = plt.subplots(figsize=(12, 12))

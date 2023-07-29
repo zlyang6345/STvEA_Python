@@ -8,7 +8,6 @@ from sklearn.metrics import silhouette_samples
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, fcluster
-from sklearn.neighbors import NearestNeighbors
 from igraph import Graph
 from numba import NumbaDeprecationWarning
 

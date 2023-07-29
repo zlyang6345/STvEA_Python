@@ -3,8 +3,6 @@ import DataProcessor
 import Cluster
 import Mapping
 import Annotation
-from copy import deepcopy
-import pandas as pd
 
 
 class Controller:

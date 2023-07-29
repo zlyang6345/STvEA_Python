@@ -1,9 +1,7 @@
 from unittest import TestCase
-import Mapping
 import pandas as pd
 import STvEA
 import Annotation
-import DataProcessor
 
 
 class TestAnnotation(TestCase):
