@@ -163,7 +163,6 @@ class Mapping:
 
     @staticmethod
     def helper(query_sub, data):
-
         cor_dist_df_sub = query_sub.apply(
             lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
             axis=1)
@@ -171,7 +170,20 @@ class Mapping:
         return cor_dist_df_sub
 
     @staticmethod
-    def cor_nn(data, query=None, k=5, option=2, npartition=3):
+    def row_wise_corr_dist(X, Y):
+        n = X.shape[1]
+        X_row_mean = np.mean(X, axis=1, keepdims=True)
+        Y_row_mean = np.mean(X, axis=1, keepdims=True)
+        X_centered = np.subtract(X, X_row_mean)
+        Y_centered = np.subtract(Y, Y_row_mean)
+        numerator = np.dot(X_centered, Y_centered.T) / n
+        X_row_std_inv = np.reciprocal(np.std(X, axis=1)).reshape((X.shape[0], 1))
+        Y_row_std_inv = np.reciprocal(np.std(Y, axis=1)).reshape((1, Y.shape[0]))
+        denominator = np.dot(X_row_std_inv, Y_row_std_inv)
+        return 1 - np.multiply(numerator, denominator)
+
+    @staticmethod
+    def cor_nn(data, query=None, k=5, option=1, npartition=3):
         """
         This function can find nearest neighbors (rows) in "data" dataset for each record (row) in "query" dataset.
         @param data: a pandas dataframe.
@@ -196,14 +208,17 @@ class Mapping:
         distances = pd.DataFrame(index=range(len(query)), columns=range(k), dtype='float64')
 
         if option == 0:
-            # regular way, fairly slow
+            # regular way, fairly slow.
             cor_dist_df = query.apply(
                                     lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
                                 axis=1)
 
         elif option == 1:
-
-            pass
+            # with self-defined helper function.
+            query_mat = query.to_numpy()
+            data_mat = data.to_numpy()
+            cor_dist = Mapping.row_wise_corr_dist(query_mat, data_mat)
+            cor_dist_df = pd.DataFrame(cor_dist, index=query.index, columns=data.index)
 
         elif option == 2:
             # multithread

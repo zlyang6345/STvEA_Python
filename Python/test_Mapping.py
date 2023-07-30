@@ -62,7 +62,7 @@ class TestMapping(TestCase):
                          [0.28174246, 0.07971738, 0.89442353, 0.69026102]])
 
         data = pd.DataFrame(data)
-        result = Mapping.Mapping.cor_nn(data, data, option=5, npartition=3)
+        result = Mapping.Mapping.cor_nn(data, data, option=1, npartition=3)
         nn_idx = result["nn_idx"]
         assert list(nn_idx.iloc[0, :]) == list([0, 8, 7, 3, 9])
 
@@ -78,7 +78,7 @@ class TestMapping(TestCase):
         data_processor.take_subset(amount_codex=10000)
         rounds = 4
         start = time.time()
-        option = 5
+        option = 1
         npartition = 4
         for i in range(rounds):
             mapping.cor_nn(data=controller.stvea.codex_protein, option=option, npartition=npartition)
