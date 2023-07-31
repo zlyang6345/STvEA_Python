@@ -39,7 +39,7 @@ class DataProcessor:
 
         end = time.time()
 
-        print("CITE-seq data read! Time: ", round(end-start, 3), "sec")
+        print("CITE-seq data read. Time: ", round(end-start, 3), "sec")
 
     def read_codex(self,
                    codex_blanks="../Data/small_dataset/codex_blanks.csv",
@@ -93,7 +93,7 @@ class DataProcessor:
             self.stvea.codex_blanks = self.stvea.codex_blanks[codex_subset]
 
         end = time.time()
-        print("CODEX files read! Time:", round(end-start, 3), "sec")
+        print("CODEX files read. Time:", round(end-start, 3), "sec")
 
     def take_subset(self,
                     amount_codex=-1,
@@ -179,7 +179,7 @@ class DataProcessor:
         end = time.time()
 
         # print the result
-        print("Codex filtered! With ", len(self.stvea.codex_blanks), " records preserved.", "Time:", round(end-start, 3), "sec")
+        print("CODEX filtered. With ", len(self.stvea.codex_blanks), " records preserved.", "Time:", round(end-start, 3), "sec")
 
     def clean_codex(self):
         """
@@ -192,10 +192,10 @@ class DataProcessor:
         # data frame
         codex_protein_norm = self.stvea.codex_protein - self.stvea.codex_protein.min().min()
 
-        # Calculate the row sums
+        # calculate the row sums
         row_sums = codex_protein_norm.sum(axis=1)
 
-        # Calculate the average of row sums
+        # calculate the average of row sums
         avg_cell_total = np.mean(row_sums)
 
         # find rows that are not all 0s
@@ -205,7 +205,7 @@ class DataProcessor:
         codex_protein_norm.loc[nonzero] = codex_protein_norm.loc[nonzero].div(row_sums[nonzero],
                                                                               axis=0) * avg_cell_total
 
-        # For each protein
+        # for each protein
         for col in codex_protein_norm.columns:
             # Compute Gaussian mixture on each protein
             gm = GaussianMixture(n_components=2, covariance_type='full', random_state=0)
@@ -213,15 +213,15 @@ class DataProcessor:
             # fit the model
             gm.fit(codex_protein_norm[col].values.reshape(-1, 1))
 
-            # Identify which component has the higher mean
+            # identify which component has the higher mean
             signal = np.argmax(gm.means_)
 
-            # Compute cleaned data from cumulative of higher mean Gaussian
+            # compute cleaned data from cumulative of higher mean Gaussian
             self.stvea.codex_protein[col] = norm.cdf(codex_protein_norm[col], loc=gm.means_[signal, 0],
                                                      scale=np.sqrt(gm.covariances_[signal, 0, 0]))
 
         end = time.time()
-        print("CODEX cleaned!", "Time:", round(end-start, 3), "sec")
+        print("CODEX cleaned.", "Time:", round(end-start, 3), "sec")
 
     @staticmethod
     def sse(args, p_obs):

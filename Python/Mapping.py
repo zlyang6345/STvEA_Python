@@ -163,6 +163,14 @@ class Mapping:
 
     @staticmethod
     def helper(query_sub, data):
+        """
+        A helper function to be invoked by cor_nn.
+        This function will calculate each row's correlation distance with each row in another dataframe.
+        @param query_sub: the query dataframe.
+        @param data: a dataframe.
+        @return: a length(query_sub) * length(data) dataframe.
+            Each entry in the dataset represents the correlation between two rows.
+        """
         cor_dist_df_sub = query_sub.apply(
             lambda row: data.apply(lambda inner_row: 1 - np.corrcoef(row, inner_row)[0, 1], axis=1),
             axis=1)
@@ -171,9 +179,16 @@ class Mapping:
 
     @staticmethod
     def row_wise_corr_dist(X, Y):
+        """
+        This function will calculate the correlation distance between any row in X and any row in Y.
+        X and Y should have the same protein panel.
+        @param X: a numpy matrix whose row represents cells and column represents protein.
+        @param Y: a numpy matrix whose row represents cells and column represents protein.
+        @return: a length(X) * length(Y) numpy matrix with each entry representing the correlation distance between two datasets.
+        """
         n = X.shape[1]
         X_row_mean = np.mean(X, axis=1, keepdims=True)
-        Y_row_mean = np.mean(X, axis=1, keepdims=True)
+        Y_row_mean = np.mean(Y, axis=1, keepdims=True)
         X_centered = np.subtract(X, X_row_mean)
         Y_centered = np.subtract(Y, Y_row_mean)
         numerator = np.dot(X_centered, Y_centered.T) / n
@@ -195,8 +210,6 @@ class Mapping:
         """
         global cor_dist_df
 
-        t = list()
-        t.append(time.time())
         if query is None:
             query = data
 
@@ -215,6 +228,7 @@ class Mapping:
 
         elif option == 1:
             # with self-defined helper function.
+            # fastest
             query_mat = query.to_numpy()
             data_mat = data.to_numpy()
             cor_dist = Mapping.row_wise_corr_dist(query_mat, data_mat)
@@ -232,7 +246,6 @@ class Mapping:
 
         elif option == 3:
             # multiprocess
-            # much faster than previous two.
             import concurrent.futures
             chunk_num = ceil(query.shape[0] / npartition)
             queries = [query.iloc[chunk_num * i: chunk_num * (i + 1), :] for i in range(npartition)]
@@ -336,7 +349,6 @@ class Mapping:
             neighbors.iloc[i, :] = idx
             distances.iloc[i, :] = row[idx]
 
-        t.append(time.time())
         return {'nn_idx': neighbors.astype("uint32"), 'nn_dists': distances}
 
     @staticmethod

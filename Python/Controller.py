@@ -32,8 +32,8 @@ class Controller:
                  cite_protein="../Data/raw_dataset/cite_protein.csv",
                  cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
                  # take_subset args
-                 amount_codex=1000,
-                 amount_cite=1000,
+                 amount_codex=-1,
+                 amount_cite=-1,
                  # filter_codex args
                  size_lim=(1000, 25000),
                  blank_lower=(-1200, -1200, -1200, -1200),
