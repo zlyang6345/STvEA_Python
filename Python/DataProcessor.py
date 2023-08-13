@@ -131,9 +131,9 @@ class DataProcessor:
         quantiles are used for the blank channel expression. We then normalize the protein expression values
         by the total expression per cell.
 
-        @param size_lim: a size limit, default to [1000, 25000]
-        @param blank_lower: a vector of length 4, default to [-1200, -1200, -1200, -1200]
-        @param blank_upper: a vector of length 4, default to [6000, 2500, 5000, 2500]
+        @param size_lim: a size limit, default to (1000, 25000)
+        @param blank_lower: a vector of length 4, default to (-1200, -1200, -1200, -1200)
+        @param blank_upper: a vector of length 4, default to (6000, 2500, 5000, 2500)
         """
         start = time.time()
         # If size_lim is not specified,
@@ -301,9 +301,6 @@ class DataProcessor:
         @param optim_init: a ndarray of optional initialization parameters for the optim function,
                 if NULL, starts at five default parameter sets and picks the better one.
                 Sometimes negative binomial doesn't fit well with certain starting parameters, so try 5
-                optim is a general optimization function
-                [5,50,2,0.5,0.5] is the initial parameter
-                SSE is the function to minimize
         @return: cleaned protein expression.
         """
         # Create a probability distribution from the raw protein expression data

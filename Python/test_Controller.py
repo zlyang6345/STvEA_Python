@@ -13,10 +13,10 @@ class TestController(TestCase):
         """
         This function will evaluate the performance of label transferring based on given data stored in STvEA object.
         """
-        # transfer labels
-        annotation.transfer_labels()
         # show the CODEX protein expression level
         cluster_index = annotation.cluster_heatmap(2, 2)
+        # transfer labels
+        annotation.transfer_labels()
         # user input CODEX cluster names
         annotation.cluster_names(cluster_index, 2)
         # calculate the percentage of labels that are consistent between transferred label and user-annotated CODEX labels.
@@ -58,8 +58,8 @@ class TestController(TestCase):
             cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=-1,
-            amount_cite=-1,
+            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=-1,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),
@@ -99,6 +99,3 @@ class TestController(TestCase):
             c_transfer_matrix=0.1
         )
         TestController.partial_evaluation(cn.stvea, cn.annotation)
-
-
-

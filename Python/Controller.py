@@ -74,6 +74,53 @@ class Controller:
                  ):
         """
         This is the ultimate pipeline of STvEA to transfer labels from CITE-seq data to CODEX data.
+
+        @param codex_blanks: a string to specify the address of CODEX blank dataset.
+        @param codex_protein: a string to specify the address of CODEX protein dataset.
+        @param codex_size: a string to specify the address of CODEX size dataset.
+        @param codex_spatial: a string to specify the address of CODEX spatial dataset.
+        @param codex_preprocess: a boolean value to specify whether to preprocess data as it is needed for raw data.
+            Preprocess means to convert voxel to nm.
+        @param codex_border: CODEX cells whose x and y are below this border will be kept in nm sense.
+            564000 in nm sense is equivalent to 30000 in voxel sense.
+            -1 means all CODEX cells will be kept.
+        @param cite_latent: a string to specify the address of CITE-seq latent dataset.
+        @param cite_protein: a string to specify the address of CITE-seq protein dataset.
+        @param cite_mrna: a string to specify the address of CITE-seq mRNA file.
+        @param amount_codex: the amount of records will be kept for CODEX.
+        @param amount_cite: the amount of records will be kept for CITE_seq.
+        @param size_lim: a size limit, default to (1000, 25000)
+        @param blank_lower: a vector of length 4, default to (-1200, -1200, -1200, -1200)
+        @param blank_upper: a vector of length 4, default to (6000, 2500, 5000, 2500)
+        @param maxit: maximum number of iterations for optim function.
+        @param factr: accuracy of optim function.
+        @param optim_init: a ndarray of optional initialization parameters for the optim function,
+            if NULL, starts at five default parameter sets and picks the better one.
+            Sometimes, negative binomial doesn't fit well with certain starting parameters, so try 5.
+        @param ignore_warnings: a boolean value to specify whether to ignore warnings or not.
+        @param clean_cite_method: a string to specify the method that will be used to fit the mixture binomial distribution.
+        @param cluster_codex_k: the number of nearest neighbors to generate graph.
+            The graph will be used to perform Louvain community detection.
+        @param cluster_codex_knn_option: the way to detect nearest neighbors.
+            1: use Pearson distance to find nearest neighbors on CODEX protein data.
+            2: use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
+        @param parameter_scan_min_cluster_size_range: a vector of min_cluster_size arguments to scan over.
+        @param parameter_scan_min_sample_range: a vector of min_sample arguments to scan over.
+        @param parameter_scan_n_neighbors: the number of neighbors.
+        @param parameter_scan_min_dist: the effective minimum distance between embedded points.
+        @param parameter_scan_negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
+        @param parameter_scan_metric: Pearson correlation should be used here.
+        @param consensus_cluster_silhouette_cutoff: HDBSCAN results below this cutoff will be discarded.
+        @param consensus_cluster_inconsistent_value: input parameter to fcluster determining where clusters are cut in the hierarchical tree.
+        @param consensus_cluster_min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
+        @param k_find_nn: the number of nearest neighbors.
+        @param k_find_anchor: The number of neighbors to find anchors.
+            Fewer k_anchor should mean higher quality of anchors.
+        @param k_filter_anchor: the number of nearest neighbors to find in the original data space.
+        @param k_score_anchor: the number of nearest neighbors to use in shared nearest neighbor scoring.
+        @param k_find_weights: the number of nearest anchors to use in correction.
+        @param k_transfer_matrix: the number of nearest anchors to use in correction.
+        @param c_transfer_matrix: a constant that controls the width of the Gaussian kernel.
         """
         # read and clean data
         self.data_processor.read_codex(codex_blanks=codex_blanks,
