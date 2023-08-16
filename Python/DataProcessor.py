@@ -1,3 +1,4 @@
+import random
 import warnings
 import pandas as pd
 import numpy as np
@@ -207,6 +208,7 @@ class DataProcessor:
 
         # for each protein
         for col in codex_protein_norm.columns:
+
             # Compute Gaussian mixture on each protein
             gm = GaussianMixture(n_components=2, covariance_type='full', random_state=0)
 

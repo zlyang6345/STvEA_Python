@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
 import warnings
-
 from joblib.numpy_pickle_utils import xrange
 # Author: Michael Kane and B. W. Lewis
 # https://github.com/bwlewis/irlbpy/blob/master/irlb/irlb.py

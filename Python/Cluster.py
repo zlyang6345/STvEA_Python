@@ -1,3 +1,4 @@
+import random
 import time
 import warnings
 import umap.umap_ as umap
@@ -40,6 +41,7 @@ class Cluster:
         2: use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
         """
         start = time.time()
+        random.seed(0)
         # find knn
         if knn_option == 1:
             # use Pearson distance to find nearest neighbors on CODEX protein data.
@@ -92,9 +94,10 @@ class Cluster:
             warnings.filterwarnings("ignore")
         if self.stvea.codex_protein.empty:
             raise ValueError("stvea object does not contain codex protein data")
+        random.seed(0)
         warnings.filterwarnings("ignore")
         res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
-                        negative_sample_rate=negative_sample_rate, n_components=2).fit_transform(
+                        negative_sample_rate=negative_sample_rate, n_components=2, random_state=0).fit_transform(
             self.stvea.codex_protein)
         self.stvea.codex_emb = pd.DataFrame(res, index=self.stvea.codex_protein.index)
 
@@ -193,7 +196,7 @@ class Cluster:
         cite_latent = self.stvea.cite_latent
         # Running UMAP on the CITE-seq latent space
         reducer = umap.UMAP(n_components=cite_latent.shape[1], n_neighbors=n_neighbors, min_dist=min_dist,
-                            negative_sample_rate=negative_sample_rate, metric=metric)
+                            negative_sample_rate=negative_sample_rate, metric=metric, random_state=0)
         umap_latent = reducer.fit_transform(cite_latent)
 
         # Running HDBSCAN on the UMAP space
