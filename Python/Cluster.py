@@ -30,10 +30,11 @@ class Cluster:
         """
         row.apply(lambda col: edge_list.append([row_name, col]))
 
-    def cluster_codex(self, k=30, knn_option=1):
+    def cluster_codex(self, k=30, knn_option=1, random_state=0):
         """
         This function will cluster codex cells.
 
+        @param random_state: an integer to specify the random state.
         @param k: the number of nearest neighbors to generate graph.
         The graph will be used to perform Louvain community detection.
         @param knn_option: the way to detect nearest neighbors.
@@ -47,13 +48,13 @@ class Cluster:
             # use Pearson distance to find nearest neighbors on CODEX protein data.
             self.stvea.codex_knn = pd.DataFrame(
                 umap.nearest_neighbors(X=self.stvea.codex_protein, metric="correlation", n_neighbors=k, metric_kwds={},
-                                       random_state=0, angular=False)[0])
+                                       random_state=random_state, angular=False)[0])
             self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
         elif knn_option == 2:
             # use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
             self.stvea.codex_knn = pd.DataFrame(
                 umap.nearest_neighbors(X=self.stvea.codex_emb, metric="euclidean", n_neighbors=k, metric_kwds={},
-                                       random_state=0, angular=False)[0])
+                                       random_state=random_state, angular=False)[0])
             self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
         else:
             raise ValueError
@@ -79,7 +80,8 @@ class Cluster:
                    n_neighbors=30,
                    min_dist=0.1,
                    negative_sample_rate=50,
-                   ignore_warnings=True):
+                   ignore_warnings=True,
+                   random_state=0):
         """
         This method perform umap on codex protein data and create a 2d embedding.
 
@@ -88,7 +90,7 @@ class Cluster:
         @param n_neighbors: the number of neighbors, default to 30.
         @param min_dist: the effective minimum distance between embedded points.
         @param negative_sample_rate: the number of negative samples to select per positive sample in the optimization process.
-        @return:
+        @param random_state: an integer to specify the random state.
         """
         if ignore_warnings:
             warnings.filterwarnings("ignore")
@@ -96,9 +98,11 @@ class Cluster:
             raise ValueError("stvea object does not contain codex protein data")
         random.seed(0)
         warnings.filterwarnings("ignore")
+        # create a 2D embedding
         res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
-                        negative_sample_rate=negative_sample_rate, n_components=2, random_state=0).fit_transform(
+                        negative_sample_rate=negative_sample_rate, n_components=2, random_state=random_state).fit_transform(
             self.stvea.codex_protein)
+        # convert to Pandas dataframe
         self.stvea.codex_emb = pd.DataFrame(res, index=self.stvea.codex_protein.index)
 
         return
@@ -180,10 +184,12 @@ class Cluster:
                        n_neighbors=50,
                        min_dist=0.1,
                        negative_sample_rate=50,
-                       metric="correlation"):
+                       metric="correlation",
+                       random_state=0):
         """
         This function will run HDBSCAN multiple times given the vector of min_cluster_size_range and min_sample_range.
         The result will be a list of dictionaries that will record each HDBSCAN's scores and generated labels.
+        @param random_state: an integer to specify the random state.
         @param min_cluster_size_range: a vector of min_cluster_size arguments to scan over.
         @param min_sample_range: a vector of min_sample arguments to scan over.
         @param n_neighbors: the number of neighbors.
@@ -196,7 +202,7 @@ class Cluster:
         cite_latent = self.stvea.cite_latent
         # Running UMAP on the CITE-seq latent space
         reducer = umap.UMAP(n_components=cite_latent.shape[1], n_neighbors=n_neighbors, min_dist=min_dist,
-                            negative_sample_rate=negative_sample_rate, metric=metric, random_state=0)
+                            negative_sample_rate=negative_sample_rate, metric=metric, random_state=random_state)
         umap_latent = reducer.fit_transform(cite_latent)
 
         # Running HDBSCAN on the UMAP space
@@ -242,6 +248,7 @@ class Cluster:
         @param min_cluster_size: cells in clusters smaller than this value are assigned a cluster ID of -1, indicating no cluster assignment.
         @return: a list of labels
         """
+
         new_distance = squareform(distance_matrix)
         hierarchical_tree = linkage(new_distance, "average")
         hier_consensus_labels = fcluster(hierarchical_tree, t=inconsistent_value)

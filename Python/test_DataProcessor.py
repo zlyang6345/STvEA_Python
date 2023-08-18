@@ -35,3 +35,16 @@ class TestDataProcessor(TestCase):
                       cite_protein="../Data/raw_dataset/cite_protein.csv")
         assert stvea.cite_protein.shape == (7097, 30)
         assert stvea.cite_mRNA.shape == (7097, 11712)
+
+    def test_clean_codex(self):
+        stvea = STvEA.STvEA()
+        dpr = DataProcessor.DataProcessor(stvea)
+        dpr.read_codex(codex_blanks="../Data/raw_dataset/codex_blanks.csv",
+                       codex_protein="../Data/raw_dataset/codex_protein.csv",
+                       codex_size="../Data/raw_dataset/codex_size.csv",
+                       codex_spatial="../Data/raw_dataset/codex_spatial.csv",
+                       codex_preprocess=True,
+                       codex_border=-1)
+        dpr.take_subset(1000, -1)
+        dpr.clean_codex()
+        pass

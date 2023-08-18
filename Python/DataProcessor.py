@@ -182,11 +182,13 @@ class DataProcessor:
         # print the result
         print("CODEX filtered. With ", len(self.stvea.codex_blanks), " records preserved.", "Time:", round(end-start, 3), "sec")
 
-    def clean_codex(self):
+    def clean_codex(self, random_state=0):
         """
         We remove noise from the CODEX protein expression by first fitting a Gaussian mixture model to the expression
         levels of each protein. The signal expression is taken as the cumulative probability according to the
         Gaussian with the higher mean.
+
+        @param random_state: an integer to specify the random state.
         """
         start = time.time()
         # subtracts the minimum value of all the elements in codex_protein (a data frame) from each element in the
@@ -210,7 +212,7 @@ class DataProcessor:
         for col in codex_protein_norm.columns:
 
             # Compute Gaussian mixture on each protein
-            gm = GaussianMixture(n_components=2, covariance_type='full', random_state=0)
+            gm = GaussianMixture(n_components=2, covariance_type='full', random_state=random_state)
 
             # fit the model
             gm.fit(codex_protein_norm[col].values.reshape(-1, 1))

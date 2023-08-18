@@ -17,10 +17,11 @@ class Mapping:
         self.stvea = stvea
 
     @staticmethod
-    def run_cca(object1, object2, standardize=True, num_cc=30, option=1):
+    def run_cca(object1, object2, standardize=True, num_cc=30, option=1, random_state=0):
         """
         This function will use CCA to reduce dimensions.
 
+        @param random_state: an integer to specify the random state.
         @param object1: A dataframe whose rows represent cells.
         @param object2: A dataframe whose rows represent cells.
         @param standardize: a boolean value. If true, two dataframes would be standardized column-wise.
@@ -42,12 +43,12 @@ class Mapping:
 
         if option == 1:
             # IRLB method
-            tuples = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000)
+            tuples = irlb(mat3, n=num_cc, tol=1e-05, maxit=1000, random_state=random_state)
             u = tuples[0]
             v = tuples[2]
         else:
             # scikit-learn method
-            u, s, v = svds(mat3, k=num_cc, tol=1e-05)
+            u, s, v = svds(mat3, k=num_cc, tol=1e-05, random_state=random_state)
             v = v.transpose()
 
         # combine the result
@@ -89,6 +90,7 @@ class Mapping:
         # find anchor pairs
         idx = 0
         for cell in ncell:
+
             # find each reference cell's k_anchor's nearest neighbors
             neighbors_rq = neighbors['nn_rq']['nn_idx'].iloc[cell, :k_anchor]
 
