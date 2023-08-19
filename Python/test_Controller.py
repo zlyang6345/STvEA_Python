@@ -4,6 +4,7 @@ import STvEA
 import pandas as pd
 import Annotation
 from copy import deepcopy
+import pandasql as ps
 
 
 class TestController(TestCase):
@@ -15,7 +16,7 @@ class TestController(TestCase):
         """
         # show the CODEX protein expression level
         cluster_index = annotation.cluster_heatmap(2, 2)
-        # transfer labels
+        # transfer labels, CITE-seq proteins expression per clusters will be shown, and
         annotation.transfer_labels()
         # user input CODEX cluster names
         annotation.cluster_names(cluster_index, 2)
@@ -26,10 +27,26 @@ class TestController(TestCase):
         combined = pd.DataFrame({"Original": codex_clusters_names.iloc[:, 0],
                                  "Transferred": stvea.codex_cluster_names_transferred.iloc[:, 0]},
                                 index=stvea.codex_protein_corrected.index)
+
         # check whether transferred labels and user-input labels
         equality = combined.apply(lambda x: x[0] == x[1], axis=1)
-        # print the result
-        print("Matched Proportion: " + str(equality.mean()))
+
+        # print the overall result
+        print("Overall Matched Percentage: " + str(equality.mean()))
+
+        # insert the equality series into the dataframe.
+        combined.insert(2, "Equality", equality)
+
+        # filter out these CODEX rows that user does not assign a CODEX cluster name.
+        filter = combined["Original"] != ""
+        combined = combined.loc[filter, :]
+
+        # group based on user assigned CODEX cluster names
+        # calculate the mean
+        results = combined.groupby("Original")["Equality"].mean()
+
+        print(results)
+
 
     def test_partial_evaluation(self):
         stvea = STvEA.STvEA()
@@ -44,7 +61,9 @@ class TestController(TestCase):
         TestController.partial_evaluation(stvea, an)
 
     def test_overall_evaluation(self):
+        # initialize variable
         cn = Controller.Controller()
+        # this pipeline will read files
         cn.pipeline(
             # read_codex args
             codex_blanks="../Data/raw_dataset/codex_blanks.csv",
@@ -98,4 +117,5 @@ class TestController(TestCase):
             k_transfer_matrix=None,
             c_transfer_matrix=0.1
         )
+        # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation)

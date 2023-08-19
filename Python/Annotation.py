@@ -15,7 +15,7 @@ class Annotation:
 
     def transfer_labels(self):
         """
-        This function will show the gene expression levels for each CITE-seq cluster, ask user to input name for each cluster.
+        This function will show the gene expression levels for each CITE-seq cluster, ask user to input name for each CITE-seq cluster.
         These labels will be transferred to CODEX cells.
         """
         # show user the gene expression info of the cluster
@@ -36,6 +36,9 @@ class Annotation:
         # transfer labels from CITE to CODEX
         codex_cluster_names_dummies = self.stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
         codex_cluster_index = codex_cluster_names_dummies.apply(lambda row: int(row.idxmax()), axis=1)
+
+        # codex_cluster_names_transferred will store the transferred names.
+        # note they are names not cluster indices.
         self.stvea.codex_cluster_names_transferred = pd.DataFrame(
             codex_cluster_index.apply(lambda x: self.stvea.cite_cluster_name_dict.get(int(x), "Unknowns")))
 

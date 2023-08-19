@@ -1,0 +1,61 @@
+1. Ter119
+    Erythroid Cell
+2. TCR (T cell receptor)
+    T cells
+3. NKp46
+    Natural killer cells
+4. MHCII
+    Antigen-presenting cells, such as dendritic cells, macrophages, and B cells.
+5. Ly6G
+    Myeloid lineage, such as monocytes, macrophages, granulocytes, and neutrophils.
+6. Ly6C
+    Monocytes
+7. IgM
+    B cells.
+8. IgD
+    B cells.
+9. F4.80
+    Macrophages.
+10. ERTR7
+    Fibroblasts
+11. CD90
+    Hematopoietic stem cells, thymocytes, neurons, and fibroblasts
+12. CD8a
+    Cytotoxic T lymphocytes
+13. CD79b
+    B cells.
+14. CD71
+    Erythroid precursors.
+15. CD5
+    T cells.
+16. CD45
+    A marker of all hematopoietic cells except platelets and red blood cells (mature erythrocytes)
+17. CD44
+    Cancer stem cells and effector-memory T cells.
+18. CD4
+    T cells, T helper cells, monocytes, macrophages, dendritic cells.
+19. CD35
+    Follicular dendritic cells.
+20. CD31
+    Endothelial cells.
+21. CD3
+    T cells.
+22. CD27
+    T cells.
+23. CD21.35
+    B lymphocytes, mast cells, follicular dendritic cells, macrophages, activated granulocytes.
+24. CD19
+    normal and neoplastic (=cancerous) B cells.
+25. CD169
+     It is expressed by monocytes, macrophages, and dendritic cells (DCs) under inflammatory conditions
+26. CD16.32
+    B cells, monocyte/macrophages, NK cells, and neutrophils.
+27. CD11c
+    Dendritic cells.
+28. CD11b
+    Monocytes, macrophages, dendritic cells, activated granulocytes.
+29. CD106
+    Activated endothelial cells, tissue macrophages, dendritic cells and bone marrow fibroblasts
+30. B220
+    B cells.
+

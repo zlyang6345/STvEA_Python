@@ -22,4 +22,3 @@ class STvEA:
     codex_cluster_name_dict = dict()
 
     transfer_matrix = pd.DataFrame()
-
