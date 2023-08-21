@@ -5,6 +5,7 @@ import pandas as pd
 import Annotation
 from copy import deepcopy
 import pandasql as ps
+import threading
 
 
 class TestController(TestCase):
@@ -14,12 +15,16 @@ class TestController(TestCase):
         """
         This function will evaluate the performance of label transferring based on given data stored in STvEA object.
         """
+
         # show the CODEX protein expression level
         cluster_index = annotation.cluster_heatmap(2, 2)
-        # transfer labels, CITE-seq proteins expression per clusters will be shown, and
+
+        # transfer labels
         annotation.transfer_labels()
+
         # user input CODEX cluster names
         annotation.cluster_names(cluster_index, 2)
+
         # calculate the percentage of labels that are consistent between transferred label and user-annotated CODEX labels.
         codex_clusters = deepcopy(stvea.codex_cluster)
         codex_clusters_names = codex_clusters.applymap(lambda x:
@@ -31,17 +36,17 @@ class TestController(TestCase):
         # check whether transferred labels and user-input labels
         equality = combined.apply(lambda x: x[0] == x[1], axis=1)
 
+        # filter out these CODEX rows that user does not assign a CODEX cluster name.
+        mask = ((combined["Original"] != "") & (combined["Transferred"] != ""))
+        combined = combined[mask]
+
         # print the overall result
-        print("Overall Matched Percentage: " + str(equality.mean()))
+        print("Overall Matched Percentage: ", str(equality.mean()), "\n")
 
         # insert the equality series into the dataframe.
         combined.insert(2, "Equality", equality)
 
-        # filter out these CODEX rows that user does not assign a CODEX cluster name.
-        filter = combined["Original"] != ""
-        combined = combined.loc[filter, :]
-
-        # group based on user assigned CODEX cluster names
+        # group based on user-assigned CODEX cluster names
         # calculate the mean
         results = combined.groupby("Original")["Equality"].mean()
 
@@ -77,8 +82,8 @@ class TestController(TestCase):
             cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=-1,  # -1 ≈ 7000 cells
+            amount_codex=8000,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=8000,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),

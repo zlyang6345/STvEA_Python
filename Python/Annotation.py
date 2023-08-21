@@ -135,7 +135,7 @@ class Annotation:
             event, values = window.read()
             if event == 'OK':
                 for i, cluster_index in enumerate(cluster_index):
-                    cluster_names[cluster_index] = values[str(i)]
+                    cluster_names[cluster_index] = values[str(i)].strip()
                 break
             elif event == sg.WINDOW_CLOSED:
                 break

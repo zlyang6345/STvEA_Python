@@ -40,7 +40,7 @@ class DataProcessor:
 
         end = time.time()
 
-        print("CITE-seq data read. Time: ", round(end-start, 3), "sec")
+        print("CITE-seq data read. Time: ", round(end - start, 3), "sec")
 
     def read_codex(self,
                    codex_blanks="../Data/small_dataset/codex_blanks.csv",
@@ -94,7 +94,7 @@ class DataProcessor:
             self.stvea.codex_blanks = self.stvea.codex_blanks[codex_subset]
 
         end = time.time()
-        print("CODEX files read. Time:", round(end-start, 3), "sec")
+        print("CODEX files read. Time:", round(end - start, 3), "sec")
 
     def take_subset(self,
                     amount_codex=-1,
@@ -180,7 +180,8 @@ class DataProcessor:
         end = time.time()
 
         # print the result
-        print("CODEX filtered. With ", len(self.stvea.codex_blanks), " records preserved.", "Time:", round(end-start, 3), "sec")
+        print("CODEX filtered. With ", len(self.stvea.codex_blanks), " records preserved.", "Time:",
+              round(end - start, 3), "sec")
 
     def clean_codex(self, random_state=0):
         """
@@ -210,7 +211,6 @@ class DataProcessor:
 
         # for each protein
         for col in codex_protein_norm.columns:
-
             # Compute Gaussian mixture on each protein
             gm = GaussianMixture(n_components=2, covariance_type='full', random_state=random_state)
 
@@ -225,7 +225,7 @@ class DataProcessor:
                                                      scale=np.sqrt(gm.covariances_[signal, 0, 0]))
 
         end = time.time()
-        print("CODEX cleaned.", "Time:", round(end-start, 3), "sec")
+        print("CODEX cleaned.", "Time:", round(end - start, 3), "sec")
 
     @staticmethod
     def sse(args, p_obs):
@@ -285,11 +285,11 @@ class DataProcessor:
                maxit=500,
                factr=1e-9,
                optim_init=(
-                [10, 60, 2, 0.5, 0.5],
-                [4.8, 50, 0.5, 2, 0.5],
-                [2, 18, 0.5, 2, 0.5],
-                [1, 3, 2, 2, 0.5],
-                [1, 3, 0.5, 2, 0.5]),
+                       [10, 60, 2, 0.5, 0.5],
+                       [4.8, 50, 0.5, 2, 0.5],
+                       [2, 18, 0.5, 2, 0.5],
+                       [1, 3, 2, 2, 0.5],
+                       [1, 3, 0.5, 2, 0.5]),
                verbose=False,
                method="l-bfgs-b"):
         """
@@ -395,4 +395,14 @@ class DataProcessor:
 
         self.stvea.cite_protein = self.norm_cite(self.stvea.cite_protein, row_sums)
         end = time.time()
-        print(f"CITE-seq protein cleaned, overall SSE: {str(self.overall_sse)} Time: {round(end-start, 3)} sec")
+        print(f"CITE-seq protein cleaned, overall SSE: {str(self.overall_sse)} Time: {round(end - start, 3)} sec")
+
+    @staticmethod
+    def discard_codex(stvea):
+        stvea.codex_blanks = stvea.codex_blanks[stvea.codex_mask]
+        stvea.codex_protein = stvea.codex_protein[stvea.codex_mask]
+        stvea.codex_protein_corrected = stvea.codex_protein_corrected[stvea.codex_mask]
+        stvea.codex_size = stvea.codex_size[stvea.codex_mask]
+        stvea.codex_spatial = stvea.codex_spatial[stvea.codex_mask]
+        stvea.codex_emb = stvea.codex_emb[stvea.codex_mask]
+        stvea.transfer_matrix = stvea.transfer_matrix[stvea.codex_mask]

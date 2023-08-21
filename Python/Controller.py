@@ -70,11 +70,13 @@ class Controller:
                  k_find_weights=100,
                  # transfer_matrix
                  k_transfer_matrix=None,
-                 c_transfer_matrix=0.1
+                 c_transfer_matrix=0.1,
+                 mask=True
                  ):
         """
         This is the ultimate pipeline of STvEA to transfer labels from CITE-seq data to CODEX data.
 
+        @param mask: a boolean value to specify whether to discard CODEX cells that don't have near CITE-seq cells.
         @param codex_blanks: a string to specify the address of CODEX blank dataset.
         @param codex_protein: a string to specify the address of CODEX protein dataset.
         @param codex_size: a string to specify the address of CODEX size dataset.
@@ -87,8 +89,8 @@ class Controller:
         @param cite_latent: a string to specify the address of CITE-seq latent dataset.
         @param cite_protein: a string to specify the address of CITE-seq protein dataset.
         @param cite_mrna: a string to specify the address of CITE-seq mRNA file.
-        @param amount_codex: the amount of records will be kept for CODEX.
-        @param amount_cite: the amount of records will be kept for CITE_seq.
+        @param amount_codex: the number of records will be kept for CODEX.
+        @param amount_cite: the number of records will be kept for CITE_seq.
         @param size_lim: a size limit, default to (1000, 25000)
         @param blank_lower: a vector of length 4, default to (-1200, -1200, -1200, -1200)
         @param blank_upper: a vector of length 4, default to (6000, 2500, 5000, 2500)
@@ -101,9 +103,9 @@ class Controller:
         @param clean_cite_method: a string to specify the method that will be used to fit the mixture binomial distribution.
         @param cluster_codex_k: the number of nearest neighbors to generate graph.
             The graph will be used to perform Louvain community detection.
-        @param cluster_codex_knn_option: the way to detect nearest neighbors.
-            1: use Pearson distance to find nearest neighbors on CODEX protein data.
-            2: use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
+        @param cluster_codex_knn_option: the way to detect the nearest neighbors.
+            1: use Pearson distance to find the nearest neighbors on CODEX protein data.
+            2: use Euclidean distance to find the nearest neighbors on 2D CODEX embedding data.
         @param parameter_scan_min_cluster_size_range: a vector of min_cluster_size arguments to scan over.
         @param parameter_scan_min_sample_range: a vector of min_sample arguments to scan over.
         @param parameter_scan_n_neighbors: the number of neighbors.
@@ -145,20 +147,6 @@ class Controller:
                                        ignore_warnings=ignore_warnings,
                                        method=clean_cite_method)
 
-        # cluster CODEX cells
-        self.cluster.cluster_codex(k=cluster_codex_k,
-                                   knn_option=cluster_codex_knn_option)
-        # cluster CITE cells
-        self.cluster.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
-                                    min_sample_range=parameter_scan_min_sample_range,
-                                    n_neighbors=parameter_scan_n_neighbors,
-                                    min_dist=parameter_scan_min_dist,
-                                    negative_sample_rate=parameter_scan_negative_sample_rate,
-                                    metric=parameter_scan_metric)
-        self.cluster.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
-                                       inconsistent_value=consensus_cluster_inconsistent_value,
-                                       min_cluster_size=consensus_cluster_min_cluster_size)
-
         # map the CODEX cells to CITE-seq cells.
         self.mapping.map_codex_to_cite(k_find_nn=k_find_nn,
                                        k_find_anchor=k_find_anchor,
@@ -169,3 +157,23 @@ class Controller:
         # create transfer matrix to transfer values from CITE-seq to CODEX
         self.mapping.transfer_matrix(k=k_transfer_matrix,
                                      c=c_transfer_matrix)
+
+        # remove some CODEX cells that don't have near CITE-cells.
+        if mask:
+            self.data_processor.discard_codex(stvea=self.stvea)
+
+        # cluster CODEX cells
+        self.cluster.cluster_codex(k=cluster_codex_k,
+                                   knn_option=cluster_codex_knn_option)
+
+        # cluster CITE cells
+        self.cluster.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
+                                    min_sample_range=parameter_scan_min_sample_range,
+                                    n_neighbors=parameter_scan_n_neighbors,
+                                    min_dist=parameter_scan_min_dist,
+                                    negative_sample_rate=parameter_scan_negative_sample_rate,
+                                    metric=parameter_scan_metric)
+
+        self.cluster.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
+                                       inconsistent_value=consensus_cluster_inconsistent_value,
+                                       min_cluster_size=consensus_cluster_min_cluster_size)

@@ -1,13 +1,13 @@
 1. Ter119
     Erythroid Cell
 2. TCR (T cell receptor)
-    T cells
+    **T cells**
 3. NKp46
     Natural killer cells
 4. MHCII
-    Antigen-presenting cells, such as dendritic cells, macrophages, and B cells.
+    **Antigen-presenting cells**, such as dendritic cells, macrophages, and **B cells**.
 5. Ly6G
-    Myeloid lineage, such as monocytes, macrophages, granulocytes, and neutrophils.
+    Myeloid lineage, such as monocytes, macrophages, granulocytes, and **neutrophils**.
 6. Ly6C
     Monocytes
 7. IgM
@@ -29,7 +29,7 @@
 15. CD5
     T cells.
 16. CD45
-    A marker of all hematopoietic cells except platelets and red blood cells (mature erythrocytes)
+    A marker of all **Hematopoietic cells** except platelets and red blood cells (mature erythrocytes)
 17. CD44
     Cancer stem cells and effector-memory T cells.
 18. CD4
@@ -55,7 +55,7 @@
 28. CD11b
     Monocytes, macrophages, dendritic cells, activated granulocytes.
 29. CD106
-    Activated endothelial cells, tissue macrophages, dendritic cells and bone marrow fibroblasts
+    **Activated endothelial cells**, tissue macrophages, dendritic cells and bone marrow fibroblasts
 30. B220
     B cells.
 

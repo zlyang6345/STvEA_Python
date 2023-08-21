@@ -644,8 +644,8 @@ class Mapping:
                         k=None,
                         c=0.1):
         """
-        This function transfers a matrix from one dataset to another based on the CorNN function.
-        @param k: number of nearest neighbors to find.
+        This function builds a transfer matrix.
+        @param k: number of the nearest neighbors to find.
         @param c: constant controls the width of the Gaussian kernel.
         """
         start = time.time()
@@ -668,6 +668,10 @@ class Mapping:
         nn_idx = nn_list['nn_idx']
         nn_dists_exp = np.exp(nn_list['nn_dists'] / -c)
 
+        # some CODEX cells may not have near neighbors
+        self.stvea.codex_mask = nn_list["nn_dists"].mean(axis=1) > 0.5
+        self.stvea.codex_mask.index = self.stvea.codex_protein.index
+
         # row-normalize the distance matrix
         nn_weights = nn_dists_exp.apply(lambda row: row / sum(row), axis=1)
 
@@ -687,6 +691,7 @@ class Mapping:
         self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
         self.stvea.transfer_matrix.index = to_dataset.index
         self.stvea.transfer_matrix.columns = from_dataset.index
+
         end = time.time()
         print(f"Transfer matrix constructed. Time: {round(end - start, 3)} sec")
 

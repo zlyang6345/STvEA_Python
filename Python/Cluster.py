@@ -37,9 +37,9 @@ class Cluster:
         @param random_state: an integer to specify the random state.
         @param k: the number of nearest neighbors to generate graph.
         The graph will be used to perform Louvain community detection.
-        @param knn_option: the way to detect nearest neighbors.
-        1: use Pearson distance to find nearest neighbors on CODEX protein data.
-        2: use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
+        @param knn_option: the way to detect the nearest neighbors.
+        1: use Pearson distance to find the nearest neighbors on CODEX protein data.
+        2: use Euclidean distance to find the nearest neighbors on 2D CODEX embedding data.
         """
         start = time.time()
         random.seed(0)
@@ -51,7 +51,7 @@ class Cluster:
                                        random_state=random_state, angular=False)[0])
             self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
         elif knn_option == 2:
-            # use Euclidean distance to find nearest neighbors on 2D CODEX embedding data.
+            # use Euclidean distance to find the nearest neighbors on 2D CODEX embedding data.
             self.stvea.codex_knn = pd.DataFrame(
                 umap.nearest_neighbors(X=self.stvea.codex_emb, metric="euclidean", n_neighbors=k, metric_kwds={},
                                        random_state=random_state, angular=False)[0])
