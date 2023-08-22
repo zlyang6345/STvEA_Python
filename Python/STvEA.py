@@ -2,13 +2,14 @@ import pandas as pd
 
 
 class STvEA:
+    hdbscan_scans = list()
+
     cite_latent = pd.DataFrame()
     cite_mRNA = pd.DataFrame()
     cite_protein = pd.DataFrame()
     cite_emb = pd.DataFrame()
     cite_cluster = pd.DataFrame()
     cite_cluster_name_dict = dict()
-    hdbscan_scans = list()
 
     codex_blanks = pd.DataFrame()
     codex_protein = pd.DataFrame()

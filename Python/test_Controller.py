@@ -82,8 +82,8 @@ class TestController(TestCase):
             cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=8000,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=8000,  # -1 ≈ 7000 cells
+            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=-1,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),
@@ -99,8 +99,8 @@ class TestController(TestCase):
             ignore_warnings=True,
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
-            cluster_codex_k=30,
-            cluster_codex_knn_option=1,
+            cluster_codex_k=5,
+            cluster_codex_knn_option=2,
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
             parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
@@ -120,7 +120,8 @@ class TestController(TestCase):
             k_find_weights=100,
             # transfer_matrix
             k_transfer_matrix=None,
-            c_transfer_matrix=0.1
+            c_transfer_matrix=0.1,
+            mask=False
         )
         # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation)

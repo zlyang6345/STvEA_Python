@@ -51,18 +51,29 @@ class Cluster:
                                        random_state=random_state, angular=False)[0])
             self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
         elif knn_option == 2:
-            # use Euclidean distance to find the nearest neighbors on 2D CODEX embedding data.
-            self.stvea.codex_knn = pd.DataFrame(
-                umap.nearest_neighbors(X=self.stvea.codex_emb, metric="euclidean", n_neighbors=k, metric_kwds={},
-                                       random_state=random_state, angular=False)[0])
-            self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
+            # use parameter_scan and consensus cluster
+            # the same approach to cluster CITE-seq cells
+            self.parameter_scan(min_cluster_size_range=tuple(range(5, 21, 4)),
+                                min_sample_range=tuple(range(10, 41, 3)),
+                                n_neighbors=50,
+                                min_dist=0.1,
+                                negative_sample_rate=50,
+                                metric="correlation",
+                                random_state=0,
+                                option=2)
+            self.consensus_cluster(silhouette_cutoff=0,
+                                   inconsistent_value=0.1,
+                                   min_cluster_size=1,
+                                   option=2)
+
+            return
         else:
             raise ValueError
 
         # convert to pandas dataframe
         codex_knn = pd.DataFrame(self.stvea.codex_knn)
 
-        # create edge list
+        # create an edge list
         edge_list = []
         codex_knn.apply(lambda row: Cluster.add_to_edge_list(edge_list, row, row.name), axis=1)
 
@@ -72,7 +83,7 @@ class Cluster:
         self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
                                                 index=self.stvea.codex_protein.index) + 1
         end = time.time()
-        print(f"CODEX clusters found. Time: {round(end-start, 3)} sec")
+        print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")
         return
 
     def codex_umap(self,
@@ -100,7 +111,8 @@ class Cluster:
         warnings.filterwarnings("ignore")
         # create a 2D embedding
         res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
-                        negative_sample_rate=negative_sample_rate, n_components=2, random_state=random_state).fit_transform(
+                        negative_sample_rate=negative_sample_rate, n_components=2,
+                        random_state=random_state).fit_transform(
             self.stvea.codex_protein)
         # convert to Pandas dataframe
         self.stvea.codex_emb = pd.DataFrame(res, index=self.stvea.codex_protein.index)
@@ -185,7 +197,8 @@ class Cluster:
                        min_dist=0.1,
                        negative_sample_rate=50,
                        metric="correlation",
-                       random_state=0):
+                       random_state=0,
+                       option=1):
         """
         This function will run HDBSCAN multiple times given the vector of min_cluster_size_range and min_sample_range.
         The result will be a list of dictionaries that will record each HDBSCAN's scores and generated labels.
@@ -199,11 +212,17 @@ class Cluster:
         @return: a list of dictionaries that will record each HDBSCAN's scores and generated labels.
         """
         start = time.time()
-        cite_latent = self.stvea.cite_latent
-        # Running UMAP on the CITE-seq latent space
-        reducer = umap.UMAP(n_components=cite_latent.shape[1], n_neighbors=n_neighbors, min_dist=min_dist,
+        if option == 1:
+            data = self.stvea.cite_latent
+            title = "CITE-seq "
+        else:
+            data = self.stvea.codex_protein
+            title = "CODEX "
+
+        # Running UMAP on the data
+        reducer = umap.UMAP(n_components=data.shape[1], n_neighbors=n_neighbors, min_dist=min_dist,
                             negative_sample_rate=negative_sample_rate, metric=metric, random_state=random_state)
-        umap_latent = reducer.fit_transform(cite_latent)
+        umap_latent = reducer.fit_transform(data)
 
         # Running HDBSCAN on the UMAP space
         hdbscan_labels = Cluster.run_hdbscan(umap_latent, min_cluster_size_range, min_sample_range, metric=metric)
@@ -214,7 +233,7 @@ class Cluster:
         for label in hdbscan_labels:
             # Calculate silhouette scores
             # score = silhouette_score(cite_latent, label, metric="correlation")
-            scores = silhouette_samples(cite_latent, label, metric="euclidean")
+            scores = silhouette_samples(data, label, metric="euclidean")
             score = np.mean(scores)
             all_scores.append(score)
             hdbscan_results.append({
@@ -224,14 +243,14 @@ class Cluster:
 
         # Plotting histogram of all silhouette scores
         plt.hist(all_scores, bins=100)
-        plt.title("Histogram of silhouette scores")
+        plt.title(title + "Histogram of silhouette scores")
         plt.xlabel("Silhouette score")
         plt.ylabel("Number of calls to HDBSCAN")
         plt.show()
 
         self.stvea.hdbscan_scans = hdbscan_results
         end = time.time()
-        print(f"Parameter scan done. Time: {round(end-start, 3)} sec")
+        print(f"Parameter scan done. Time: {round(end - start, 3)} sec")
         return
 
     @staticmethod
@@ -263,7 +282,8 @@ class Cluster:
     def consensus_cluster(self,
                           silhouette_cutoff,
                           inconsistent_value,
-                          min_cluster_size):
+                          min_cluster_size,
+                          option=1):
         """
         This function will first generate a distance matrix based on HDBSCAN results,
         and then invoke clustering function to perform clustering based on the distance matrix.
@@ -333,8 +353,11 @@ class Cluster:
 
         # map original_array to new values using map_series
         # store the result in the STvEA object
-        self.stvea.cite_cluster = pd.DataFrame(map_series[original_array].values)
+        if option == 1:
+            self.stvea.cite_cluster = pd.DataFrame(map_series[original_array].values)
+        else:
+            self.stvea.codex_cluster = pd.DataFrame(map_series[original_array].values)
 
         end = time.time()
-        print(f"Consensus cluster done. Time: {round(end-start, 3)} sec")
+        print(f"Consensus cluster done. Time: {round(end - start, 3)} sec")
         return
