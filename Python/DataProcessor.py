@@ -101,8 +101,8 @@ class DataProcessor:
                     amount_cite=-1):
         """
         This function will take a subset of the given amount of original data.
-        @param amount_codex: the amount of records will be kept for CODEX.
-        @param amount_cite: the amount of records will be kept for CITE_seq.
+        @param amount_codex: the number of records will be kept for CODEX.
+        @param amount_cite: the number of records will be kept for CITE_seq.
         """
         if len(self.stvea.cite_protein) > amount_cite > 0:
             self.stvea.cite_protein = self.stvea.cite_protein[:amount_cite]
@@ -211,6 +211,7 @@ class DataProcessor:
 
         # for each protein
         for col in codex_protein_norm.columns:
+
             # Compute Gaussian mixture on each protein
             gm = GaussianMixture(n_components=2, covariance_type='full', random_state=random_state)
 
@@ -379,15 +380,15 @@ class DataProcessor:
         This function will use mixture negative binomial distribution models to clean CITE-seq protein data.
         @param method: a string to specify the method that will be used to fit the mixture binomial distribution.
         @param ignore_warnings: a boolean value to specify whether to ignore warnings or not.
-        @param maxit: the maximum number of iterations
-        @param factr: accuracy of optim function
-        @param optim_init: a vector of with initialization
+        @param maxit: the maximum number of iterations.
+        @param factr: accuracies of optim function.
+        @param optim_init: a vector of with initialization.
         """
         start = time.time()
         if ignore_warnings:
             warnings.simplefilter("ignore")
 
-        # Calculate the row sums
+        # calculate the row sums
         row_sums = self.stvea.cite_protein.sum(axis=1)
 
         self.stvea.cite_protein = self.stvea.cite_protein.apply(

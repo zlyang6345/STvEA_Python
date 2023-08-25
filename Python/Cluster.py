@@ -47,8 +47,12 @@ class Cluster:
         if knn_option == 1:
             # use Pearson distance to find nearest neighbors on CODEX protein data.
             self.stvea.codex_knn = pd.DataFrame(
-                umap.nearest_neighbors(X=self.stvea.codex_protein, metric="correlation", n_neighbors=k, metric_kwds={},
-                                       random_state=random_state, angular=False)[0])
+                umap.nearest_neighbors(X=self.stvea.codex_protein,
+                                       metric="correlation",
+                                       n_neighbors=k,
+                                       metric_kwds={},
+                                       random_state=random_state,
+                                       angular=False)[0])
             self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
         elif knn_option == 2:
             # use parameter_scan and consensus cluster
@@ -79,11 +83,14 @@ class Cluster:
 
         # perform louvain community detection ()
         g = Graph(edges=edge_list)
+
         # add one to make clusters 1-indexed
         self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
                                                 index=self.stvea.codex_protein.index) + 1
+
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")
+
         return
 
     def codex_umap(self,
@@ -94,7 +101,7 @@ class Cluster:
                    ignore_warnings=True,
                    random_state=0):
         """
-        This method perform umap on codex protein data and create a 2d embedding.
+        This method performs umap on codex protein data and creates a 2d embedding.
 
         @param ignore_warnings: a boolean value to specify whether to ignore warnings or not.
         @param metric: the metric to use here, default to correlation.
@@ -112,8 +119,7 @@ class Cluster:
         # create a 2D embedding
         res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
                         negative_sample_rate=negative_sample_rate, n_components=2,
-                        random_state=random_state).fit_transform(
-            self.stvea.codex_protein)
+                        random_state=random_state).fit_transform(self.stvea.codex_protein)
         # convert to Pandas dataframe
         self.stvea.codex_emb = pd.DataFrame(res, index=self.stvea.codex_protein.index)
 
@@ -166,7 +172,7 @@ class Cluster:
                     metric,
                     cache_dir="./HDBSCAN_cache"):
         """
-        This function is borrowed from original STvEA R library.
+        This function is borrowed from the original STvEA R library.
         https://github.com/CamaraLab/STvEA/blob/master/inst/python/consensus_clustering.py
 
         @param metric: metric to run HDBSCAN.
@@ -212,6 +218,7 @@ class Cluster:
         @return: a list of dictionaries that will record each HDBSCAN's scores and generated labels.
         """
         start = time.time()
+
         if option == 1:
             data = self.stvea.cite_latent
             title = "CITE-seq "
@@ -219,19 +226,23 @@ class Cluster:
             data = self.stvea.codex_protein
             title = "CODEX "
 
-        # Running UMAP on the data
-        reducer = umap.UMAP(n_components=data.shape[1], n_neighbors=n_neighbors, min_dist=min_dist,
-                            negative_sample_rate=negative_sample_rate, metric=metric, random_state=random_state)
+        # running UMAP on the data
+        reducer = umap.UMAP(n_components=data.shape[1],
+                            n_neighbors=n_neighbors,
+                            min_dist=min_dist,
+                            negative_sample_rate=negative_sample_rate,
+                            metric=metric,
+                            random_state=random_state)
         umap_latent = reducer.fit_transform(data)
 
-        # Running HDBSCAN on the UMAP space
+        # running HDBSCAN on the UMAP space
         hdbscan_labels = Cluster.run_hdbscan(umap_latent, min_cluster_size_range, min_sample_range, metric=metric)
 
         # calculate scores
         all_scores = []
         hdbscan_results = []
         for label in hdbscan_labels:
-            # Calculate silhouette scores
+            # calculate silhouette scores
             # score = silhouette_score(cite_latent, label, metric="correlation")
             scores = silhouette_samples(data, label, metric="euclidean")
             score = np.mean(scores)
@@ -241,7 +252,7 @@ class Cluster:
                 "silhouette_score": score
             })
 
-        # Plotting histogram of all silhouette scores
+        # plotting histogram of all silhouette scores
         plt.hist(all_scores, bins=100)
         plt.title(title + "Histogram of silhouette scores")
         plt.xlabel("Silhouette score")
@@ -258,7 +269,7 @@ class Cluster:
                                    inconsistent_value=0.3,
                                    min_cluster_size=10):
         """
-        This function was borrowed from original STvEA R program.
+        This function was borrowed from the original STvEA R program.
         This function will perform clustering given the distance matrix.
         https://github.com/CamaraLab/STvEA/blob/master/inst/python/consensus_clustering.py
 
@@ -321,8 +332,10 @@ class Cluster:
                 # set diagonal entries in the matrix to be 1
                 np.fill_diagonal(sim_matrix, 1)
 
-                # add the results to the consensus_matrix
+                # substract the results from the consensus_matrix
                 consensus_matrix -= sim_matrix
+
+                # update the total number of runs
                 total_runs += 1
 
         # flip the result to become a distance matrix
@@ -332,7 +345,7 @@ class Cluster:
             # normalize
             consensus_matrix /= total_runs
         else:
-            print("Warning: No clustering runs passed the silhouette score cutoff")
+            print("Warning: No clustering runs passed the silhouette score cutoff.")
             exit(1)
 
         # perform clustering
@@ -360,4 +373,5 @@ class Cluster:
 
         end = time.time()
         print(f"Consensus cluster done. Time: {round(end - start, 3)} sec")
+
         return
