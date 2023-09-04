@@ -11,9 +11,9 @@
 6. Ly6C
     Monocytes or T cells.
 7. IgM
-    B cells.
+    B cells. ??
 8. IgD
-    B cells.
+    B cells.??
 9. F4.80
     Macrophages.
 10. ERTR7
@@ -21,7 +21,7 @@
 11. CD90
     T cells and some hematopoietic stem cells.
 12. CD8a
-    Cytotoxic T cells
+    Cytotoxic T cells dendritric cell??
 13. CD79b
     B cells.
 14. CD71
@@ -33,13 +33,13 @@
 17. CD44
     Various immune cells; involved in cell adhesion.
 18. CD4
-    T helper cells
+    T helper cells, some subset of dendritic cells
 19. CD35
     Follicular dendritic cells and some B cells.
 20. CD31
     Endothelial cells.
 21. CD3
-    T cells.
+    T cells. ??
 22. CD27
     Memory B cells and some T cell subsets.
 23. CD21.35

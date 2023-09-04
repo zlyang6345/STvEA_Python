@@ -1,4 +1,6 @@
 from copy import deepcopy
+
+import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
 import seaborn as sns
@@ -18,10 +20,10 @@ class Annotation:
         This function will show the gene expression levels for each CITE-seq cluster, ask user to input name for each CITE-seq cluster.
         These labels will be transferred to CODEX cells.
         """
-        # show user the gene expression info of the cluster
+        # show user the gene expression info of the CITE-seq cluster
         cluster_index = self.cluster_heatmap(1)
 
-        # receive user annotation of clusters
+        # receive user annotation of CITE-seq clusters
         self.cluster_names(cluster_index, 1)
         cite_cluster_names_dict = self.stvea.cite_cluster_name_dict
         cite_cluster_names_dict[-1] = "Unknowns"
@@ -42,9 +44,26 @@ class Annotation:
         self.stvea.codex_cluster_names_transferred = pd.DataFrame(
             codex_cluster_index.apply(lambda x: self.stvea.cite_cluster_name_dict.get(int(x), "Unknowns")))
 
-    def cluster_heatmap(self, dataset, option=2):
+    def cluster_heatmap(self,
+                        dataset,
+                        option=2,
+                        upper_limit=10,
+                        marker=pd.Series(('Cxcl16', 'Cacnb3', 'Cox6a2',
+                                          'Bst2', 'Siglech', 'Hmox1',
+                                          'C1qa', 'Vcam1', 'Hba-a1',
+                                          'Hbb-bs', 'Hba-a2', 'Ngp',
+                                          'S100a9', 'S100a8', 'Klf1',
+                                          'Car2', 'Car1', 'Ppt1',
+                                          'Ppp1r14a', 'Ffar2', 'Mmp12',
+                                          'Jchain', 'Ifi30', 'Vpreb3',
+                                          'Wfdc17', 'Ccl9', 'Ccl6',
+                                          'Ncr1', 'Ccl5', 'Gzma',
+                                          'Cd22', 'Ighd', '1810046K07Rik',
+                                          'Zbtb32', 'Bhlhe41', 'Cd3d',
+                                          'Cd3e', 'Trbc2'))):
         """
         This function will generate a heatmap of clusters' protein expressions.
+        @param marker: a pandas Series that stores marker genes.
         @param dataset: 1 for CITE, 2 for CODEX
         @param option: 1 for static heatmap, 2 for interactive heatmap.
         @return cluster_index
@@ -54,31 +73,38 @@ class Annotation:
             # cluster assignments for each cell
             clusters = self.stvea.cite_cluster
             # creat a dataframe
-            combined_df = deepcopy(self.stvea.cite_protein)
-            title = "CITE-seq "
+            combined_df = deepcopy(self.stvea.cite_mRNA[marker])
+            title = "Heatmap of Average CITE-seq Gene Expression by Cluster (mRNA)"
         else:
             # codex
             clusters = self.stvea.codex_cluster
             # creat a dataframe
             combined_df = deepcopy(self.stvea.codex_protein_corrected)
-            title = "CODEX "
+            title = "Heatmap of Average CODEX Gene Expression by Cluster (Protein)"
 
         clusters.index = combined_df.index
         combined_df.insert(len(combined_df.columns), "Cluster", clusters)
+
         # group based on cluster and calculate the mean for each gene expression level within each cluster
         df_grouped = combined_df.groupby("Cluster").mean()
+        if dataset == 1:
+            # huge difference between the highest value and lowest value in the df_grouped
+            # make it difficult to plot heatplot
+            df_grouped = df_grouped.clip(upper=upper_limit)
+
         if -1 in df_grouped.index:
             # -1 means no cluster assignment
             # drop -1
             df_grouped.drop(-1, inplace=True)
+
         # transpose
         df_grouped = df_grouped.transpose()
 
         if option == 1:
-            # Now you can generate the heatmap
+            # generate the static heatmap
             plt.figure(figsize=(10, 10))
             sns.heatmap(df_grouped, cmap="viridis")
-            plt.title(title + "Heatmap of Average Gene Expression by Cluster")
+            plt.title(title )
             plt.xlabel("Cluster")
             plt.ylabel("Gene")
             plt.show()

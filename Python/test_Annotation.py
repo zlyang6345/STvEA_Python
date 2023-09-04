@@ -12,7 +12,7 @@ class TestAnnotation(TestCase):
         # test cite
         stvea.cite_cluster = pd.read_csv("../Tests/R_cite_clusters.csv", index_col=0, header=0).astype("float64")
         stvea.cite_cluster = stvea.cite_cluster[stvea.cite_cluster.columns[-1]]
-        stvea.cite_protein = pd.read_csv("../Tests/r_cite_clean.csv", index_col=0, header=0).astype("float64")
+        stvea.cite_mRNA = pd.read_csv("../Data/small_dataset/cite_mRNA.csv", index_col=0, header=0).astype("float64")
         an.cluster_heatmap(1, 2)
 
         # test codex

@@ -11,7 +11,8 @@ import threading
 class TestController(TestCase):
 
     @staticmethod
-    def partial_evaluation(stvea, annotation):
+    def partial_evaluation(stvea,
+                           annotation):
         """
         This function will evaluate the performance of label transferring based on given data stored in STvEA object.
         """
