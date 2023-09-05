@@ -4,8 +4,6 @@ import STvEA
 import pandas as pd
 import Annotation
 from copy import deepcopy
-import pandasql as ps
-import threading
 
 
 class TestController(TestCase):
@@ -29,12 +27,12 @@ class TestController(TestCase):
         # calculate the percentage of labels that are consistent between transferred label and user-annotated CODEX labels.
         codex_clusters = deepcopy(stvea.codex_cluster)
         codex_clusters_names = codex_clusters.applymap(lambda x:
-                                                       stvea.codex_cluster_name_dict.get(x, "Unknowns"))
+                                                       stvea.codex_cluster_name_dict.get(x))
         combined = pd.DataFrame({"Original": codex_clusters_names.iloc[:, 0],
                                  "Transferred": stvea.codex_cluster_names_transferred.iloc[:, 0]},
                                 index=stvea.codex_protein_corrected.index)
 
-        # check whether transferred labels and user-input labels
+        # check whether transferred labels and user-input labels equal
         equality = combined.apply(lambda x: x[0] == x[1], axis=1)
 
         # filter out these CODEX rows that user does not assign a CODEX cluster name.
@@ -44,14 +42,20 @@ class TestController(TestCase):
         # print the overall result
         print("Overall Matched Percentage: ", str(equality.mean()), "\n")
 
-        # insert the equality series into the dataframe.
-        combined.insert(2, "Equality", equality)
+        # print each cell type's result
+        reality = "Original"
+        test = "Transferred"
+        cell_types = combined[reality].unique()
+        for type in cell_types:
+            type_cells_reality = list(combined[reality] == type)
+            non_type_cells_reality = [not x for x in type_cells_reality]
+            type_cells_test = list(combined[test] == type)
+            non_type_cells_test = [not x for x in type_cells_test]
+            # true positive rate
+            tpr = sum([a & b for a, b in zip(type_cells_reality, type_cells_test)])/sum(type_cells_reality)
+            # true negative rate
+            tnr = sum([a & b for a, b in zip(non_type_cells_reality, non_type_cells_test)])/sum(non_type_cells_reality)
 
-        # group based on user-assigned CODEX cluster names
-        # calculate the mean
-        results = combined.groupby("Original")["Equality"].mean()
-
-        print(results)
 
 
     def test_partial_evaluation(self):
@@ -83,8 +87,8 @@ class TestController(TestCase):
             cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=-1,  # -1 ≈ 7000 cells
+            amount_codex=1000,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=1000,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),

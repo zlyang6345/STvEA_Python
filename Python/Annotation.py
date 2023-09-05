@@ -26,7 +26,7 @@ class Annotation:
         # receive user annotation of CITE-seq clusters
         self.cluster_names(cluster_index, 1)
         cite_cluster_names_dict = self.stvea.cite_cluster_name_dict
-        cite_cluster_names_dict[-1] = "Unknowns"
+        cite_cluster_names_dict[-1] = ""
 
         # create indicator matrix of CITE cell cluster assignments
         cite_cluster_assignment = deepcopy(self.stvea.cite_cluster)
@@ -42,7 +42,7 @@ class Annotation:
         # codex_cluster_names_transferred will store the transferred names.
         # note they are names not cluster indices.
         self.stvea.codex_cluster_names_transferred = pd.DataFrame(
-            codex_cluster_index.apply(lambda x: self.stvea.cite_cluster_name_dict.get(int(x), "Unknowns")))
+            codex_cluster_index.apply(lambda x: self.stvea.cite_cluster_name_dict.get(int(x))))
 
     def cluster_heatmap(self,
                         dataset,
