@@ -55,7 +55,7 @@ class TestController(TestCase):
             tpr = sum([a & b for a, b in zip(type_cells_reality, type_cells_test)])/sum(type_cells_reality)
             # true negative rate
             tnr = sum([a & b for a, b in zip(non_type_cells_reality, non_type_cells_test)])/sum(non_type_cells_reality)
-
+            print(f"{type}: TPR: {round(tpr*100, 2)}% TNR: {round(tnr*100, 2)}")
 
 
     def test_partial_evaluation(self):
@@ -87,8 +87,8 @@ class TestController(TestCase):
             cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=1000,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=1000,  # -1 ≈ 7000 cells
+            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=-1,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),

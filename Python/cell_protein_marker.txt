@@ -27,7 +27,7 @@
 14. CD71
     Erythroid precursors.
 15. CD5
-    T cells.
+    T cells and B-1
 16. CD45
     Hematopoietic cells (except erythrocytes and plasma cells)
 17. CD44
@@ -39,11 +39,11 @@
 20. CD31
     Endothelial cells.
 21. CD3
-    T cells. ??
+    T cells.
 22. CD27
     Memory B cells and some T cell subsets.
 23. CD21.35
-    Follicular dendritic cells and mature B cells.
+    Follicular dendritic cells and mature B cells (B-2).
 24. CD19
     B cells.
 25. CD169
