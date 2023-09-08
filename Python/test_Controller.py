@@ -39,9 +39,6 @@ class TestController(TestCase):
         mask = ((combined["Original"] != "") & (combined["Transferred"] != ""))
         combined = combined[mask]
 
-        # print the overall result
-        print("Overall Matched Percentage: ", str(equality.mean()), "\n")
-
         # print each cell type's result
         reality = "Original"
         test = "Transferred"
@@ -56,6 +53,22 @@ class TestController(TestCase):
             # true negative rate
             tnr = sum([a & b for a, b in zip(non_type_cells_reality, non_type_cells_test)])/sum(non_type_cells_reality)
             print(f"{type}: TPR: {round(tpr*100, 2)}% TNR: {round(tnr*100, 2)}")
+            index = (combined["Original"] == type)
+            subset = combined.loc[index,]
+            transferred_majority = subset["Transferred"].value_counts().idxmax()
+            print(f"Transferred majority: {transferred_majority}")
+            print()
+
+        print()
+
+        unique_codex_clusters = codex_clusters.loc[:, 0].unique()
+        for each in unique_codex_clusters:
+            index = (codex_clusters.loc[:, 0] == each)
+            subset = stvea.codex_cluster_names_transferred.loc[index, 0]
+            transferred_majority = subset.value_counts().idxmax()
+            print(f"CODEX cluster {each} transferred majority: {transferred_majority}")
+
+
 
 
     def test_partial_evaluation(self):
