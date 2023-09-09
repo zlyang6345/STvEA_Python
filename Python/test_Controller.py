@@ -52,7 +52,7 @@ class TestController(TestCase):
             tpr = sum([a & b for a, b in zip(type_cells_reality, type_cells_test)])/sum(type_cells_reality)
             # true negative rate
             tnr = sum([a & b for a, b in zip(non_type_cells_reality, non_type_cells_test)])/sum(non_type_cells_reality)
-            print(f"{type}: TPR: {round(tpr*100, 2)}% TNR: {round(tnr*100, 2)}")
+            print(f"{type}: TPR: {round(tpr*100, 2)}% TNR: {round(tnr*100, 2)}%")
             index = (combined["Original"] == type)
             subset = combined.loc[index,]
             transferred_majority = subset["Transferred"].value_counts().idxmax()
@@ -65,9 +65,12 @@ class TestController(TestCase):
         for each in unique_codex_clusters:
             index = (codex_clusters.loc[:, 0] == each)
             subset = stvea.codex_cluster_names_transferred.loc[index, 0]
-            transferred_majority = subset.value_counts().idxmax()
-            print(f"CODEX cluster {each} transferred majority: {transferred_majority}")
+            subset_value_count = subset.value_counts()
+            transferred_majority = subset_value_count.idxmax()
+            count_sum = subset_value_count.sum()
+            subset_value_percent = subset_value_count / count_sum
 
+            print(f"CODEX cluster {each} transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
 
 
 
@@ -117,7 +120,7 @@ class TestController(TestCase):
             ignore_warnings=True,
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
-            cluster_codex_k=10,
+            cluster_codex_k=5,
             cluster_codex_knn_option=1,
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
@@ -139,7 +142,7 @@ class TestController(TestCase):
             # transfer_matrix
             k_transfer_matrix=None,
             c_transfer_matrix=0.1,
-            mask=False
+            mask=True
         )
         # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation)

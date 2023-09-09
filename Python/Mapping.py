@@ -647,7 +647,8 @@ class Mapping:
 
     def transfer_matrix(self,
                         k=None,
-                        c=0.1):
+                        c=0.1,
+                        mask_threshold=0.5):
         """
         This function builds a transfer matrix.
         @param k: number of the nearest neighbors to find.
@@ -674,7 +675,7 @@ class Mapping:
         nn_dists_exp = np.exp(nn_list['nn_dists'] / -c)
 
         # some CODEX cells may not have near neighbors
-        self.stvea.codex_mask = nn_list["nn_dists"].mean(axis=1) > 0.5
+        self.stvea.codex_mask = nn_list["nn_dists"].mean(axis=1) < mask_threshold
         self.stvea.codex_mask.index = self.stvea.codex_protein.index
 
         # row-normalize the distance matrix
