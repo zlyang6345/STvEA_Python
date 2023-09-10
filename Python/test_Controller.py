@@ -35,7 +35,7 @@ class TestController(TestCase):
         # check whether transferred labels and user-input labels equal
         equality = combined.apply(lambda x: x[0] == x[1], axis=1)
 
-        # filter out these CODEX rows that user does not assign a CODEX cluster name.
+        # filter out these CODEX cells that user does not assign a CODEX cluster name or whose transferred label is null.
         mask = ((combined["Original"] != "") & (combined["Transferred"] != ""))
         combined = combined[mask]
 
@@ -120,7 +120,7 @@ class TestController(TestCase):
             ignore_warnings=True,
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
-            cluster_codex_k=5,
+            cluster_codex_k=3,
             cluster_codex_knn_option=1,
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
