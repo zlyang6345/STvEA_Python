@@ -19,7 +19,7 @@ class TestCluster(TestCase):
         # data_processor.filter_codex()
         data_processor.clean_codex()
         cl.codex_umap()
-        cl.cluster_codex()
+        cl.cluster_codex(knn_option=3)
 
         # plot python
 

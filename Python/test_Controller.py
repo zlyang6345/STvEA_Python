@@ -120,8 +120,8 @@ class TestController(TestCase):
             ignore_warnings=True,
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
-            cluster_codex_k=3,
-            cluster_codex_knn_option=1,
+            cluster_codex_k=5,
+            cluster_codex_knn_option=3,
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
             parameter_scan_min_sample_range=tuple(range(10, 41, 3)),

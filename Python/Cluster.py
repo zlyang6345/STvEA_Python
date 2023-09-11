@@ -1,6 +1,8 @@
 import random
 import time
 import warnings
+from copy import deepcopy
+
 import umap.umap_ as umap
 import pandas as pd
 import numpy as np
@@ -44,16 +46,19 @@ class Cluster:
         start = time.time()
         random.seed(0)
         # find knn
-        if knn_option == 1:
+        if knn_option == 1 or knn_option == 3:
             # use Pearson distance to find nearest neighbors on CODEX protein data.
-            self.stvea.codex_knn = pd.DataFrame(
-                umap.nearest_neighbors(X=self.stvea.codex_protein,
+
+            umap_results = umap.nearest_neighbors(X=self.stvea.codex_protein,
                                        metric="correlation",
                                        n_neighbors=k,
                                        metric_kwds={},
                                        random_state=random_state,
-                                       angular=False)[0])
+                                       angular=False)
+
+            self.stvea.codex_knn = pd.DataFrame(umap_results[0])
             self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
+
         elif knn_option == 2:
             # use parameter_scan and consensus cluster
             # the same approach to cluster CITE-seq cells
@@ -88,10 +93,27 @@ class Cluster:
         self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
                                                 index=self.stvea.codex_protein.index) + 1
 
+        if knn_option == 3:
+            temp = deepcopy(self.stvea.codex_cluster)
+            for each_cluster in self.stvea.codex_cluster[0].unique():
+                reducer = umap.UMAP(n_components=self.stvea.codex_protein.shape[1],
+                                    n_neighbors=k,
+                                    metric="correlation",
+                                    random_state=random_state)
+                subset_index = self.stvea.codex_cluster[0] == each_cluster
+                protein_subset = self.stvea.codex_protein.loc[subset_index, :]
+                total_sum = subset_index.sum()
+                umap_latent = reducer.fit_transform(protein_subset)
+                clusterer = hdbscan.HDBSCAN(min_cluster_size=round((total_sum)/12), min_samples=6, metric="correlation")
+                labels = pd.Series(clusterer.fit_predict(umap_latent))
+                labels_replaced = labels.apply(lambda x: -1 if x == -1 else each_cluster)
+                temp.loc[subset_index, 0] = labels_replaced
+            self.stvea.codex_cluster = temp
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")
 
         return
+
 
     def codex_umap(self,
                    metric="correlation",
