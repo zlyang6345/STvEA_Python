@@ -49,7 +49,7 @@ class Cluster:
         if knn_option == 1 or knn_option == 3:
             # use Pearson distance to find nearest neighbors on CODEX protein data.
 
-            umap_results = umap.nearest_neighbors(X=self.stvea.codex_protein,
+            umap_results = umap.nearest_neighbors(X=self.stvea.codex_protein_corrected,
                                        metric="correlation",
                                        n_neighbors=k,
                                        metric_kwds={},
@@ -91,22 +91,25 @@ class Cluster:
 
         # add one to make clusters 1-indexed
         self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
-                                                index=self.stvea.codex_protein.index) + 1
+                                                index=self.stvea.codex_protein_corrected.index) + 1
 
         if knn_option == 3:
             temp = deepcopy(self.stvea.codex_cluster)
             for each_cluster in self.stvea.codex_cluster[0].unique():
-                reducer = umap.UMAP(n_components=self.stvea.codex_protein.shape[1],
-                                    n_neighbors=k,
-                                    metric="correlation",
-                                    random_state=random_state)
                 subset_index = self.stvea.codex_cluster[0] == each_cluster
-                protein_subset = self.stvea.codex_protein.loc[subset_index, :]
+                protein_subset = self.stvea.codex_protein_corrected.loc[subset_index, :]
                 total_sum = subset_index.sum()
+                reducer = umap.UMAP(n_components=4,
+                                    n_neighbors=min(k, protein_subset.shape[0] - 1),
+                                    metric="correlation",
+                                    random_state=random_state,
+                                    init="random")
                 umap_latent = reducer.fit_transform(protein_subset)
-                clusterer = hdbscan.HDBSCAN(min_cluster_size=round((total_sum)/12), min_samples=6, metric="correlation")
+                clusterer = hdbscan.HDBSCAN(min_cluster_size=max(round((total_sum)/10), 2), min_samples=8, metric="correlation")
                 labels = pd.Series(clusterer.fit_predict(umap_latent))
+                labels.index = temp[subset_index].index
                 labels_replaced = labels.apply(lambda x: -1 if x == -1 else each_cluster)
+                labels_replaced.index = temp[subset_index].index
                 temp.loc[subset_index, 0] = labels_replaced
             self.stvea.codex_cluster = temp
         end = time.time()

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from unittest import TestCase
 import DataProcessor
 from matplotlib import pyplot as plt
@@ -5,9 +6,76 @@ import seaborn as sns
 import pandas as pd
 import Cluster
 import STvEA
+import Annotation
 
 
 class TestCluster(TestCase):
+
+    def test_improve_tpr(self):
+        stvea = STvEA.STvEA()
+        cluster = Cluster.Cluster(stvea)
+        annotation = Annotation.Annotation(stvea)
+        stvea.codex_protein_corrected = pd.read_csv("../Tests/ToImproveTPR/codex_protein_corrected.csv", index_col=0, header=0).astype("float64")
+        stvea.codex_cluster_names_transferred = pd.read_csv("../Tests/ToImproveTPR/codex_cluster_names_transferred.csv", index_col=0, header=0)
+        stvea.codex_protein = pd.read_csv("../Tests/ToImproveTPR/codex_protein.csv", index_col=0, header=0).astype("float64")
+        # cluster CODEX cells
+        cluster.cluster_codex(k=4, knn_option=1)
+
+        # show the CODEX protein expression level
+        cluster_index = annotation.cluster_heatmap(2, 2)
+        # user input CODEX cluster names
+        annotation.cluster_names(cluster_index, 2)
+
+        codex_clusters = deepcopy(stvea.codex_cluster)
+        codex_clusters_names = codex_clusters.applymap(lambda x:
+                                                       stvea.codex_cluster_name_dict.get(x))
+        combined = pd.DataFrame({"Original": codex_clusters_names.iloc[:, 0],
+                                 "Transferred": stvea.codex_cluster_names_transferred.iloc[:, 0]},
+                                index=stvea.codex_protein_corrected.index)
+
+        # check whether transferred labels and user-input labels equal
+        equality = combined.apply(lambda x: x[0] == x[1], axis=1)
+
+        # filter out these CODEX cells that user does not assign a CODEX cluster name or whose transferred label is null.
+        mask = ((combined["Original"] != "") & (combined["Transferred"] != ""))
+        combined = combined[mask]
+
+        # print each cell type's result
+        reality = "Original"
+        test = "Transferred"
+        cell_types = combined[reality].unique()
+        for type in cell_types:
+            type_cells_reality = combined[reality] == type
+            non_type_cells_reality = ~type_cells_reality
+            type_cells_test = combined[test] == type
+            non_type_cells_test = ~type_cells_test
+
+            # true positive rate
+            tpr = (type_cells_reality & type_cells_test).sum() / type_cells_reality.sum()
+            # true negative rate
+            tnr = (non_type_cells_reality & non_type_cells_test).sum() / non_type_cells_reality.sum()
+
+            print(f"{type}: TPR: {round(tpr*100, 2)}% TNR: {round(tnr*100, 2)}%")
+
+            index = (combined["Original"] == type)
+            subset = combined.loc[index,]
+            transferred_majority = subset["Transferred"].value_counts().idxmax()
+            print(f"Transferred majority: {transferred_majority}")
+            print()
+
+        print()
+
+        unique_codex_clusters = codex_clusters.loc[:, 0].unique()
+        for each in unique_codex_clusters:
+            index = (codex_clusters.loc[:, 0] == each)
+            subset = stvea.codex_cluster_names_transferred.loc[index, "0"]
+            subset_value_count = subset.value_counts()
+            transferred_majority = subset_value_count.idxmax()
+            count_sum = subset_value_count.sum()
+            subset_value_percent = subset_value_count / count_sum
+
+            print(f"CODEX cluster {each} transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
+
 
     def test_cluster_codex(self):
         stvea = STvEA.STvEA()

@@ -44,15 +44,18 @@ class TestController(TestCase):
         test = "Transferred"
         cell_types = combined[reality].unique()
         for type in cell_types:
-            type_cells_reality = list(combined[reality] == type)
-            non_type_cells_reality = [not x for x in type_cells_reality]
-            type_cells_test = list(combined[test] == type)
-            non_type_cells_test = [not x for x in type_cells_test]
+            type_cells_reality = combined[reality] == type
+            non_type_cells_reality = ~type_cells_reality
+            type_cells_test = combined[test] == type
+            non_type_cells_test = ~type_cells_test
+
             # true positive rate
-            tpr = sum([a & b for a, b in zip(type_cells_reality, type_cells_test)])/sum(type_cells_reality)
+            tpr = (type_cells_reality & type_cells_test).sum() / type_cells_reality.sum()
             # true negative rate
-            tnr = sum([a & b for a, b in zip(non_type_cells_reality, non_type_cells_test)])/sum(non_type_cells_reality)
+            tnr = (non_type_cells_reality & non_type_cells_test).sum() / non_type_cells_reality.sum()
+
             print(f"{type}: TPR: {round(tpr*100, 2)}% TNR: {round(tnr*100, 2)}%")
+
             index = (combined["Original"] == type)
             subset = combined.loc[index,]
             transferred_majority = subset["Transferred"].value_counts().idxmax()

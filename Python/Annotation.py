@@ -26,7 +26,6 @@ class Annotation:
         # receive user annotation of CITE-seq clusters
         self.cluster_names(cluster_index, 1)
         cite_cluster_names_dict = self.stvea.cite_cluster_name_dict
-        cite_cluster_names_dict[-1] = ""
 
         # create indicator matrix of CITE cell cluster assignments
         cite_cluster_assignment = deepcopy(self.stvea.cite_cluster)
@@ -79,7 +78,7 @@ class Annotation:
             # codex
             clusters = self.stvea.codex_cluster
             # creat a dataframe
-            combined_df = deepcopy(self.stvea.codex_protein_corrected)
+            combined_df = deepcopy(self.stvea.codex_protein)
             title = "Heatmap of Average CODEX Gene Expression by Cluster (Protein)"
 
         clusters.index = combined_df.index
@@ -129,7 +128,7 @@ class Annotation:
 
         return df_grouped.columns
 
-    def cluster_names(self, cluster_index, dataset):
+    def cluster_names(self, cluster_index, dataset, option=1):
         """
         This function will receive user input for each cluster.
         @param cluster_index: a list contains all the cluster index.
@@ -146,28 +145,42 @@ class Annotation:
             # CODEX
             title = " CODEX "
 
-        # define layout
-        layout = [[sg.Text('Enter the name for each' + title + 'cluster.')],
-                  *[[sg.Text(cluster_name), sg.Input(key=str(i))]
-                    for i, cluster_name in enumerate(cluster_index)],
-                  [sg.Button('OK')]]
-
-        # create window
-        window = sg.Window('Enter' + title + 'Cluster Names', layout)
-
-        # event loop and collecting user input
         cluster_names = {}
-        while True:
-            event, values = window.read()
-            if event == 'OK':
-                for i, cluster_index in enumerate(cluster_index):
-                    cluster_names[cluster_index] = values[str(i)].strip()
-                break
-            elif event == sg.WINDOW_CLOSED:
-                break
+        if option == 1:
+        # define layout
+            layout = [[sg.Text('Enter the name for each' + title + 'cluster.')],
+                      *[[sg.Text(cluster_name), sg.Input(key=str(i))]
+                        for i, cluster_name in enumerate(cluster_index)],
+                      [sg.Button('OK')]]
 
-        # clean up
-        window.close()
+            # create window
+            window = sg.Window('Enter' + title + 'Cluster Names', layout)
+
+            # event loop and collecting user input
+            while True:
+                event, values = window.read()
+                if event == 'OK':
+                    for i, cluster_index in enumerate(cluster_index):
+                        cluster_names[cluster_index] = values[str(i)].strip()
+                    break
+                elif event == sg.WINDOW_CLOSED:
+                    break
+
+            # clean up
+            window.close()
+        else:
+            # read txt files
+            if dataset == 1:
+                file_path = "cite_cluster_names.txt"
+            else:
+                file_path = "codex_names.txt"
+
+            with open(file_path, "r") as file:
+                for line in file:
+                    arrays = line.strip().split(": ")
+                    cluster_names[int(arrays[0])] = arrays[1]
+
+        cluster_names[-1] = ""
 
         # store the dict in STvEA object
         if dataset == 1:
