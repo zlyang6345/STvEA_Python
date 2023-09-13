@@ -16,19 +16,18 @@ class TestCluster(TestCase):
         cluster = Cluster.Cluster(stvea)
         annotation = Annotation.Annotation(stvea)
         stvea.codex_protein_corrected = pd.read_csv("../Tests/ToImproveTPR/codex_protein_corrected.csv", index_col=0, header=0).astype("float64")
-        stvea.codex_cluster_names_transferred = pd.read_csv("../Tests/ToImproveTPR/codex_cluster_names_transferred.csv", index_col=0, header=0)
+        stvea.codex_cluster_names_transferred = pd.read_csv("../Tests/ToImproveTPR/codex_cluster_names_transferred.csv", index_col=0, header=0).fillna("")
         stvea.codex_protein = pd.read_csv("../Tests/ToImproveTPR/codex_protein.csv", index_col=0, header=0).astype("float64")
         # cluster CODEX cells
-        cluster.cluster_codex(k=4, knn_option=1)
+        cluster.cluster_codex(k=4, knn_option=3)
 
         # show the CODEX protein expression level
         cluster_index = annotation.cluster_heatmap(2, 2)
         # user input CODEX cluster names
-        annotation.cluster_names(cluster_index, 2)
+        annotation.cluster_names(cluster_index, 2, option=2)
 
         codex_clusters = deepcopy(stvea.codex_cluster)
-        codex_clusters_names = codex_clusters.applymap(lambda x:
-                                                       stvea.codex_cluster_name_dict.get(x))
+        codex_clusters_names = codex_clusters.applymap(lambda x: stvea.codex_cluster_name_dict.get(x))
         combined = pd.DataFrame({"Original": codex_clusters_names.iloc[:, 0],
                                  "Transferred": stvea.codex_cluster_names_transferred.iloc[:, 0]},
                                 index=stvea.codex_protein_corrected.index)

@@ -74,18 +74,27 @@ class Annotation:
             # creat a dataframe
             combined_df = deepcopy(self.stvea.cite_mRNA[marker])
             title = "Heatmap of Average CITE-seq Gene Expression by Cluster (mRNA)"
+            dataset_type = "CITE-seq"
         else:
             # codex
             clusters = self.stvea.codex_cluster
             # creat a dataframe
             combined_df = deepcopy(self.stvea.codex_protein)
             title = "Heatmap of Average CODEX Gene Expression by Cluster (Protein)"
+            dataset_type = "CODEX"
+
 
         clusters.index = combined_df.index
         combined_df.insert(len(combined_df.columns), "Cluster", clusters)
 
         # group based on cluster and calculate the mean for each gene expression level within each cluster
         df_grouped = combined_df.groupby("Cluster").mean()
+
+        # print the size
+        print("Size of each cluster for " + dataset_type)
+        df_grouped_size = combined_df.groupby("Cluster").size()
+        print(df_grouped_size.to_string(header=False))
+
         if dataset == 1:
             # huge difference between the highest value and lowest value in the df_grouped
             # make it difficult to plot heatplot
@@ -169,16 +178,26 @@ class Annotation:
             # clean up
             window.close()
         else:
+            while True:
+                user_input = input(f"Complete editing {title} cluster names? y/n")
+                if user_input == "y" or user_input == "Y":
+                    break
+
             # read txt files
             if dataset == 1:
                 file_path = "cite_cluster_names.txt"
             else:
-                file_path = "codex_names.txt"
+                file_path = "codex_cluster_names.txt"
 
             with open(file_path, "r") as file:
                 for line in file:
                     arrays = line.strip().split(": ")
                     cluster_names[int(arrays[0])] = arrays[1]
+
+            for index in cluster_index:
+                if index not in cluster_names.keys():
+                    cluster_names[index]=""
+                pass
 
         cluster_names[-1] = ""
 

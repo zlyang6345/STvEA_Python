@@ -100,14 +100,14 @@ class TestController(TestCase):
             codex_size="../Data/raw_dataset/codex_size.csv",
             codex_spatial="../Data/raw_dataset/codex_spatial.csv",
             codex_preprocess=True,
-            codex_border=564000,
+            codex_border=454000,
             # read_cite args
             cite_latent="../Data/raw_dataset/cite_latent.csv",
             cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=-1,  # -1 ≈ 7000 cells
+            amount_codex=1000,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=1000,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),
@@ -123,7 +123,7 @@ class TestController(TestCase):
             ignore_warnings=True,
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
-            cluster_codex_k=5,
+            cluster_codex_k=4,
             cluster_codex_knn_option=3,
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),

@@ -105,7 +105,7 @@ class Cluster:
                                     random_state=random_state,
                                     init="random")
                 umap_latent = reducer.fit_transform(protein_subset)
-                clusterer = hdbscan.HDBSCAN(min_cluster_size=max(round((total_sum)/10), 2), min_samples=8, metric="correlation")
+                clusterer = hdbscan.HDBSCAN(min_cluster_size=max(round((total_sum)/10), 2), min_samples=5, metric="correlation")
                 labels = pd.Series(clusterer.fit_predict(umap_latent))
                 labels.index = temp[subset_index].index
                 labels_replaced = labels.apply(lambda x: -1 if x == -1 else each_cluster)
