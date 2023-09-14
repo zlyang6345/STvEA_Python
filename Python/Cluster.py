@@ -2,17 +2,17 @@ import random
 import time
 import warnings
 from copy import deepcopy
-
+import matplotlib.pyplot as plt
 import umap.umap_ as umap
 import pandas as pd
 import numpy as np
 import hdbscan
 from sklearn.metrics import silhouette_samples
-import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, fcluster
 from igraph import Graph
 from numba import NumbaDeprecationWarning
+from sklearn.preprocessing import LabelEncoder
 
 
 class Cluster:
@@ -32,7 +32,7 @@ class Cluster:
         """
         row.apply(lambda col: edge_list.append([row_name, col]))
 
-    def cluster_codex(self, k=30, knn_option=1, random_state=0):
+    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=True):
         """
         This function will cluster codex cells.
 
@@ -94,13 +94,14 @@ class Cluster:
                                                 index=self.stvea.codex_protein_corrected.index) + 1
 
         if knn_option == 3:
+            # use HDBSCAN to filter out noise
             temp = deepcopy(self.stvea.codex_cluster)
             for each_cluster in self.stvea.codex_cluster[0].unique():
                 subset_index = self.stvea.codex_cluster[0] == each_cluster
                 protein_subset = self.stvea.codex_protein_corrected.loc[subset_index, :]
                 total_sum = subset_index.sum()
                 reducer = umap.UMAP(n_components=4,
-                                    n_neighbors=min(k, protein_subset.shape[0] - 1),
+                                    n_neighbors=20,
                                     metric="correlation",
                                     random_state=random_state,
                                     init="random")
@@ -111,6 +112,30 @@ class Cluster:
                 labels_replaced = labels.apply(lambda x: -1 if x == -1 else each_cluster)
                 labels_replaced.index = temp[subset_index].index
                 temp.loc[subset_index, 0] = labels_replaced
+                if plot == True:
+                    reducer = umap.UMAP(n_components=2,
+                                        n_neighbors=20,
+                                        random_state=random_state,
+                                        init="random")
+                    umap_for_plot = reducer.fit_transform(protein_subset)
+                    transferred_name = self.stvea.codex_cluster_names_transferred.loc[subset_index, 0]
+                    le = LabelEncoder()
+                    label_integers = le.fit_transform(transferred_name)
+                    plt.scatter(umap_for_plot[:, 0], umap_for_plot[:, 1], cmap='Spectral', c=label_integers)
+                    cbar = plt.colorbar()
+                    cbar.set_ticks(list(range(len(le.classes_))))
+                    cbar.set_ticklabels(le.classes_)
+                    plt.title(f'UMAP Projection for Cluster {each_cluster} (Transferred)')
+                    plt.xlabel('UMAP1')
+                    plt.ylabel('UMAP2')
+                    plt.show()
+
+                    original_name = self.stvea.codex_cluster.loc[subset_index, 0]
+                    plt.scatter(umap_for_plot[:, 0], umap_for_plot[:, 1], cmap='Spectral', c=original_name)
+                    plt.title(f'UMAP Projection for Cluster {each_cluster} (Original)')
+                    plt.xlabel('UMAP1')
+                    plt.ylabel('UMAP2')
+                    plt.show()
             self.stvea.codex_cluster = temp
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")

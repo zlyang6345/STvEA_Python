@@ -179,7 +179,7 @@ class Annotation:
             window.close()
         else:
             while True:
-                user_input = input(f"Complete editing {title} cluster names? y/n")
+                user_input = input(f"Complete editing {title} cluster names? y/n\n")
                 if user_input == "y" or user_input == "Y":
                     break
 

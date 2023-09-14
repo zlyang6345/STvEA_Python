@@ -17,6 +17,7 @@ class TestCluster(TestCase):
         annotation = Annotation.Annotation(stvea)
         stvea.codex_protein_corrected = pd.read_csv("../Tests/ToImproveTPR/codex_protein_corrected.csv", index_col=0, header=0).astype("float64")
         stvea.codex_cluster_names_transferred = pd.read_csv("../Tests/ToImproveTPR/codex_cluster_names_transferred.csv", index_col=0, header=0).fillna("")
+        stvea.codex_cluster_names_transferred.columns = stvea.codex_cluster_names_transferred.columns.astype(int)
         stvea.codex_protein = pd.read_csv("../Tests/ToImproveTPR/codex_protein.csv", index_col=0, header=0).astype("float64")
         # cluster CODEX cells
         cluster.cluster_codex(k=4, knn_option=3)
@@ -72,11 +73,11 @@ class TestCluster(TestCase):
             transferred_majority = subset_value_count.idxmax()
             count_sum = subset_value_count.sum()
             subset_value_percent = subset_value_count / count_sum
-
             print(f"CODEX cluster {each} transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
 
 
     def test_cluster_codex(self):
+
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor(stvea)
         cl = Cluster.Cluster(stvea)
@@ -89,7 +90,6 @@ class TestCluster(TestCase):
         cl.cluster_codex(knn_option=3)
 
         # plot python
-
         plot_df = pd.DataFrame({"x": stvea.codex_emb[0], "y": stvea.codex_emb[1],
                                 "Clusters": stvea.codex_cluster[0]})
         plt.figure(figsize=(12, 12))
