@@ -12,8 +12,8 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, fcluster
 from igraph import Graph
 from numba import NumbaDeprecationWarning
-from sklearn.preprocessing import LabelEncoder
-
+import seaborn as sns
+from sklearn.decomposition import KernelPCA
 
 class Cluster:
     stvea = None
@@ -32,7 +32,7 @@ class Cluster:
         """
         row.apply(lambda col: edge_list.append([row_name, col]))
 
-    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=True):
+    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=False):
         """
         This function will cluster codex cells.
 
@@ -113,29 +113,31 @@ class Cluster:
                 labels_replaced.index = temp[subset_index].index
                 temp.loc[subset_index, 0] = labels_replaced
                 if plot == True:
-                    reducer = umap.UMAP(n_components=2,
-                                        n_neighbors=20,
-                                        random_state=random_state,
-                                        init="random")
-                    umap_for_plot = reducer.fit_transform(protein_subset)
+                   # reducer = umap.UMAP(n_components=2,
+                   #                     n_neighbors=20,
+                   #                     random_state=random_state,
+                   #                     init="random")
+                   # for_plot = reducer.fit_transform(protein_subset)
+                    pca = KernelPCA(n_components=2, kernel="linear")
+                    for_plot = pca.fit_transform(protein_subset)
+                    warnings.simplefilter("ignore")
                     transferred_name = self.stvea.codex_cluster_names_transferred.loc[subset_index, 0]
-                    le = LabelEncoder()
-                    label_integers = le.fit_transform(transferred_name)
-                    plt.scatter(umap_for_plot[:, 0], umap_for_plot[:, 1], cmap='Spectral', c=label_integers)
-                    cbar = plt.colorbar()
-                    cbar.set_ticks(list(range(len(le.classes_))))
-                    cbar.set_ticklabels(le.classes_)
+                    transferred_name = transferred_name.rename("Labels")
+                    plt.figure(figsize=(6, 6))
+                    x = pd.Series(for_plot[:, 0], name="X", index=transferred_name.index)
+                    y = pd.Series(for_plot[:, 1], name="Y", index=transferred_name.index)
+                    df1 = pd.concat([x, y, transferred_name], axis=1)
+                    sns.scatterplot(data=df1, x="X", y="Y", hue="Labels", palette="deep", s=60)
                     plt.title(f'UMAP Projection for Cluster {each_cluster} (Transferred)')
-                    plt.xlabel('UMAP1')
-                    plt.ylabel('UMAP2')
                     plt.show()
 
-                    original_name = self.stvea.codex_cluster.loc[subset_index, 0]
-                    plt.scatter(umap_for_plot[:, 0], umap_for_plot[:, 1], cmap='Spectral', c=original_name)
-                    plt.title(f'UMAP Projection for Cluster {each_cluster} (Original)')
-                    plt.xlabel('UMAP1')
-                    plt.ylabel('UMAP2')
+                    original_name = temp.loc[subset_index, 0].rename("Labels")
+                    df2 = pd.concat([x, y, original_name], axis=1)
+                    plt.figure(figsize=(6, 6))
+                    sns.scatterplot(data=df2, x="X", y="Y", hue="Labels", palette="deep", s=60)
+                    plt.title(f'UMAP Projection for Cluster {each_cluster} (Reclusterred)')
                     plt.show()
+
             self.stvea.codex_cluster = temp
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")

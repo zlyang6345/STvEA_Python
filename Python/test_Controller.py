@@ -22,7 +22,7 @@ class TestController(TestCase):
         annotation.transfer_labels()
 
         # user input CODEX cluster names
-        annotation.cluster_names(cluster_index, 2)
+        annotation.cluster_names(cluster_index, 2, option=2)
 
         # calculate the percentage of labels that are consistent between transferred label and user-annotated CODEX labels.
         codex_clusters = deepcopy(stvea.codex_cluster)
@@ -76,7 +76,6 @@ class TestController(TestCase):
             print(f"CODEX cluster {each} transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
 
 
-
     def test_partial_evaluation(self):
         stvea = STvEA.STvEA()
         an = Annotation.Annotation(stvea)
@@ -100,14 +99,14 @@ class TestController(TestCase):
             codex_size="../Data/raw_dataset/codex_size.csv",
             codex_spatial="../Data/raw_dataset/codex_spatial.csv",
             codex_preprocess=True,
-            codex_border=454000,
+            codex_border=450000,
             # read_cite args
             cite_latent="../Data/raw_dataset/cite_latent.csv",
             cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=1000,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=1000,  # -1 ≈ 7000 cells
+            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=-1,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),
@@ -124,7 +123,7 @@ class TestController(TestCase):
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
             cluster_codex_k=4,
-            cluster_codex_knn_option=3,
+            cluster_codex_knn_option=1,
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
             parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
@@ -133,7 +132,7 @@ class TestController(TestCase):
             parameter_scan_negative_sample_rate=50,
             parameter_scan_metric="correlation",
             # consensus_cluster args
-            consensus_cluster_silhouette_cutoff=0.126,
+            consensus_cluster_silhouette_cutoff=0.130,
             consensus_cluster_inconsistent_value=0.1,
             consensus_cluster_min_cluster_size=10,
             # map_codex_to_cite args

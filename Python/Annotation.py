@@ -24,7 +24,7 @@ class Annotation:
         cluster_index = self.cluster_heatmap(1)
 
         # receive user annotation of CITE-seq clusters
-        self.cluster_names(cluster_index, 1)
+        self.cluster_names(cluster_index, 1, option=2)
         cite_cluster_names_dict = self.stvea.cite_cluster_name_dict
 
         # create indicator matrix of CITE cell cluster assignments
