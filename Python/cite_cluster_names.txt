@@ -2,15 +2,13 @@
 2: B cells
 3: NK cells
 4: CD4
-5: Monocytes
-6: Neutrophils
-8: T1 B cells
-9: T1 B cells
-12: Plasma cells
-13: CD8
-14: Neutrophils
-15: Erythrocytes
-16: Macrophages
-17: Macrophages
-18: pDCs
-19: Langerhans
+5: CD8
+7: T1 B cells
+8: Plasma cells
+9: Erythroblasts
+10: Neutrophils
+11: Erythrocytes
+12: Macrophages
+13: Macrophages
+14: pDCs
+15: Langerhans
