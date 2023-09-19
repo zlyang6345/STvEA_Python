@@ -391,6 +391,7 @@ class DataProcessor:
         # calculate the row sums
         row_sums = self.stvea.cite_protein.sum(axis=1)
 
+        # fit NB for each column
         self.stvea.cite_protein = self.stvea.cite_protein.apply(
             lambda col: self.fit_nb(col, col.name, maxit=maxit, factr=factr, optim_init=optim_init, method=method))
 

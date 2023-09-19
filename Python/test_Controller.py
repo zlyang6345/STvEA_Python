@@ -127,14 +127,14 @@ class TestController(TestCase):
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
             parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
-            parameter_scan_n_neighbors=25,
+            parameter_scan_n_neighbors=50,
             parameter_scan_min_dist=0.1,
             parameter_scan_negative_sample_rate=50,
             parameter_scan_metric="correlation",
             # consensus_cluster args
-            consensus_cluster_silhouette_cutoff=0.140,
+            consensus_cluster_silhouette_cutoff=0.130,
             consensus_cluster_inconsistent_value=0.1,
-            consensus_cluster_min_cluster_size=5,
+            consensus_cluster_min_cluster_size=10,
             # map_codex_to_cite args
             k_find_nn=80,
             k_find_anchor=20,
@@ -144,7 +144,10 @@ class TestController(TestCase):
             # transfer_matrix
             k_transfer_matrix=None,
             c_transfer_matrix=0.1,
-            mask=True
+            mask=True,
+            mask_threshold=0.5
         )
+
+
         # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation)

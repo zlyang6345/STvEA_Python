@@ -71,6 +71,7 @@ class Controller:
                  # transfer_matrix
                  k_transfer_matrix=None,
                  c_transfer_matrix=0.1,
+                 mask_threshold=0.5,
                  mask=True
                  ):
         """
@@ -156,7 +157,8 @@ class Controller:
 
         # create transfer matrix to transfer values from CITE-seq to CODEX
         self.mapping.transfer_matrix(k=k_transfer_matrix,
-                                     c=c_transfer_matrix)
+                                     c=c_transfer_matrix,
+                                     mask_threshold=mask_threshold)
 
         # remove some CODEX cells that don't have near CITE-cells.
         if mask:
