@@ -1,3 +1,4 @@
+import math
 import random
 import time
 import warnings
@@ -13,6 +14,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from igraph import Graph
 from numba import NumbaDeprecationWarning
 import seaborn as sns
+import math
 from sklearn.decomposition import KernelPCA
 
 class Cluster:
@@ -32,7 +34,7 @@ class Cluster:
         """
         row.apply(lambda col: edge_list.append([row_name, col]))
 
-    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=False):
+    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=False, threshold=(0.01, 0.001, 0.01, 0.01), markers = ("B220", "Ly6G", "NKp46", "TCR")):
         """
         This function will cluster codex cells.
 
@@ -45,6 +47,18 @@ class Cluster:
         """
         start = time.time()
         random.seed(0)
+
+        if knn_option == 4:
+            self.stvea.codex_cluster = pd.DataFrame(-1, index=self.stvea.codex_protein.index, columns=range(1))
+            # only focus on B cells, T cells, Neutrophils, and NK cells
+            for index, marker in enumerate(markers):
+                self.stvea.codex_protein_corrected = self.stvea.codex_protein
+                n_cells = self.stvea.codex_protein_corrected.shape[0]
+                n_cells = math.floor(threshold[index] * n_cells)
+                marker_cells = self.stvea.codex_protein_corrected.nlargest(n_cells, marker).index
+                self.stvea.codex_cluster.loc[marker_cells, :] = index + 1
+            return
+
         # find knn
         if knn_option == 1 or knn_option == 3:
             # use Pearson distance to find nearest neighbors on CODEX protein data.
@@ -94,7 +108,8 @@ class Cluster:
                                                 index=self.stvea.codex_protein_corrected.index) + 1
 
         if knn_option == 3:
-            # use HDBSCAN to filter out noise
+            # use HDBSCAN to filter out noise within each cluster
+            # not very good result
             temp = deepcopy(self.stvea.codex_cluster)
             for each_cluster in self.stvea.codex_cluster[0].unique():
                 subset_index = self.stvea.codex_cluster[0] == each_cluster

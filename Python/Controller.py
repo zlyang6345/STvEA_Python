@@ -51,6 +51,8 @@ class Controller:
                  # cluster_codex args
                  cluster_codex_k=30,
                  cluster_codex_knn_option=1,
+                 cluster_codex_threshold=(0.01, 0.001, 0.01, 0.01),
+                 markers=("B220", "Ly6G", "NKp46", "TCR"),
                  # parameter_scan args
                  parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
                  parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
@@ -168,7 +170,9 @@ class Controller:
 
         # cluster CODEX cells
         self.cluster.cluster_codex(k=cluster_codex_k,
-                                   knn_option=cluster_codex_knn_option)
+                                   knn_option=cluster_codex_knn_option,
+                                   threshold=cluster_codex_threshold,
+                                   markers=markers)
 
         # cluster CITE cells
         self.cluster.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,

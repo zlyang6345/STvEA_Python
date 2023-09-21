@@ -91,6 +91,7 @@ class TestController(TestCase):
     def test_overall_evaluation(self):
         # initialize variable
         cn = Controller.Controller()
+
         # this pipeline will read files
         cn.pipeline(
             # read_codex args
@@ -123,7 +124,9 @@ class TestController(TestCase):
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
             cluster_codex_k=4,
-            cluster_codex_knn_option=1,
+            cluster_codex_knn_option=4,
+            cluster_codex_threshold=(0.01, 0.001, 0.001, 0.01),
+            markers=("B220", "Ly6G", "NKp46", "TCR"),
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
             parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
@@ -144,10 +147,8 @@ class TestController(TestCase):
             # transfer_matrix
             k_transfer_matrix=None,
             c_transfer_matrix=0.1,
-            mask=True,
-            mask_threshold=0.5
+            mask=True
         )
-
 
         # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation)

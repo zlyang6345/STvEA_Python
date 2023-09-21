@@ -1,6 +1,4 @@
-13: T cells
-15: T cells
-31: T cells
-26: B cells
-17: NK cells
-8: Neutrophils
+1: B cells
+2: Neutrophils
+3: NK cells
+4: T cells

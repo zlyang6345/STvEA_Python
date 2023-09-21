@@ -20,7 +20,7 @@ class TestCluster(TestCase):
         stvea.codex_cluster_names_transferred.columns = stvea.codex_cluster_names_transferred.columns.astype(int)
         stvea.codex_protein = pd.read_csv("../Tests/ToImproveTPR/codex_protein.csv", index_col=0, header=0).astype("float64")
         # cluster CODEX cells
-        cluster.cluster_codex(k=4, knn_option=3)
+        cluster.cluster_codex(k=4, knn_option=4)
 
         # show the CODEX protein expression level
         cluster_index = annotation.cluster_heatmap(2, 2)
@@ -87,7 +87,7 @@ class TestCluster(TestCase):
         # data_processor.filter_codex()
         data_processor.clean_codex()
         cl.codex_umap()
-        cl.cluster_codex(knn_option=3)
+        cl.cluster_codex(knn_option=4)
 
         # plot python
         plot_df = pd.DataFrame({"x": stvea.codex_emb[0], "y": stvea.codex_emb[1],
@@ -167,6 +167,7 @@ class TestCluster(TestCase):
         cl.parameter_scan(stvea, list(range(5, 21, 4)), list(range(10, 41, 3)))
 
     def test_consensus_cluster(self):
+
         stvea = STvEA.STvEA()
         cl = Cluster.Cluster(stvea)
 

@@ -664,7 +664,7 @@ class Mapping:
                 k = int(np.floor(len(to_dataset) * 0.02))
             else:
                 # regular dataset
-                k = int(np.floor(len(to_dataset) * 0.002))
+                k = int(np.floor(len(to_dataset) * 0.001))
 
         # compute query knn from cor_nn
         # weight each nn based on gaussian kernel of distance
