@@ -664,7 +664,7 @@ class Mapping:
                 k = int(np.floor(len(to_dataset) * 0.02))
             else:
                 # regular dataset
-                k = int(np.floor(len(to_dataset) * 0.001))
+                k = int(np.floor(len(to_dataset) * 0.002))
 
         # compute query knn from cor_nn
         # weight each nn based on gaussian kernel of distance
@@ -692,7 +692,8 @@ class Mapping:
         data = weights_array.flatten()
 
         # create a sparse matrix
-        transfer_matrix = coo_matrix((data, (rows, cols)))
+        shape = (self.stvea.codex_protein.shape[0], self.stvea.cite_protein.shape[0])
+        transfer_matrix = coo_matrix((data, (rows, cols)), shape=shape)
 
         # convert to DataFrame
         self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())

@@ -1,4 +1,23 @@
-1: B cells
-2: Neutrophils
-3: NK cells
-4: T cells
+4: B cells
+6: B cells
+7: B cells
+9: B cells
+11: B cells
+12: B cells
+14: B cells
+16: B cells
+18: B cells
+20: B cells
+21: B cells
+23: B cells
+24: B cells
+26: B cells
+27: B cells
+28: B cells
+29: B cells
+30: B cells
+13: T cells
+15: T cells
+31: T cells
+17: NK cells
+8: Neutrophils

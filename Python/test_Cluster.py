@@ -11,7 +11,57 @@ import Annotation
 
 class TestCluster(TestCase):
 
+    def test_optimize_cite_cluster(self):
+        stvea = STvEA.STvEA()
+        cluster = Cluster.Cluster(stvea)
+        data_processor = DataProcessor.DataProcessor(stvea)
+        data_processor.read_cite(cite_latent="../Data/raw_dataset/cite_latent.csv",
+                                      cite_protein="../Data/raw_dataset/cite_protein.csv",
+                                      cite_mrna="../Data/raw_dataset/cite_mRNA.csv")
+        data_processor.take_subset(amount_codex=-1,
+                                   amount_cite=-1)
+        maxit = 500
+        factr = 1e-9
+        optim_init = ([10, 60, 2, 0.5, 0.5],
+                      [4.8, 50, 0.5, 2, 0.5],
+                      [2, 18, 0.5, 2, 0.5],
+                      [1, 3, 2, 2, 0.5],
+                      [1, 3, 0.5, 2, 0.5])
+        ignore_warnings = True
+        clean_cite_method = "l-bfgs-b"
+        data_processor.clean_cite(maxit=maxit,
+                                       factr=factr,
+                                       optim_init=optim_init,
+                                       ignore_warnings=ignore_warnings,
+                                       method=clean_cite_method)
+        # parameter_scan args
+        parameter_scan_min_cluster_size_range = tuple(range(5, 21, 4))
+        parameter_scan_min_sample_range = tuple(range(10, 41, 3))
+        parameter_scan_n_neighbors = 50
+        parameter_scan_min_dist = 0.1
+        parameter_scan_negative_sample_rate = 50
+        parameter_scan_metric = "correlation"
+        # consensus_cluster args
+        consensus_cluster_silhouette_cutoff = 0.130
+        consensus_cluster_inconsistent_value = 0.1
+        consensus_cluster_min_cluster_size = 10
+
+        # cluster CITE cells
+        cluster.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
+                                    min_sample_range=parameter_scan_min_sample_range,
+                                    n_neighbors=parameter_scan_n_neighbors,
+                                    min_dist=parameter_scan_min_dist,
+                                    negative_sample_rate=parameter_scan_negative_sample_rate,
+                                    metric=parameter_scan_metric)
+
+        cluster.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
+                                       inconsistent_value=consensus_cluster_inconsistent_value,
+                                       min_cluster_size=consensus_cluster_min_cluster_size)
+
+        cluster.plot_cite()
+
     def test_improve_tpr(self):
+
         stvea = STvEA.STvEA()
         cluster = Cluster.Cluster(stvea)
         annotation = Annotation.Annotation(stvea)
@@ -19,8 +69,9 @@ class TestCluster(TestCase):
         stvea.codex_cluster_names_transferred = pd.read_csv("../Tests/ToImproveTPR/codex_cluster_names_transferred.csv", index_col=0, header=0).fillna("")
         stvea.codex_cluster_names_transferred.columns = stvea.codex_cluster_names_transferred.columns.astype(int)
         stvea.codex_protein = pd.read_csv("../Tests/ToImproveTPR/codex_protein.csv", index_col=0, header=0).astype("float64")
+
         # cluster CODEX cells
-        cluster.cluster_codex(k=4, knn_option=4)
+        cluster.cluster_codex(k=4, knn_option=1)
 
         # show the CODEX protein expression level
         cluster_index = annotation.cluster_heatmap(2, 2)
@@ -37,8 +88,8 @@ class TestCluster(TestCase):
         equality = combined.apply(lambda x: x[0] == x[1], axis=1)
 
         # filter out these CODEX cells that user does not assign a CODEX cluster name or whose transferred label is null.
-        mask = ((combined["Original"] != "") & (combined["Transferred"] != ""))
-        combined = combined[mask]
+        # mask = ((combined["Original"] != "") & (combined["Transferred"] != ""))
+        # combined = combined[mask]
 
         # print each cell type's result
         reality = "Original"
@@ -68,13 +119,12 @@ class TestCluster(TestCase):
         unique_codex_clusters = codex_clusters.loc[:, 0].unique()
         for each in unique_codex_clusters:
             index = (codex_clusters.loc[:, 0] == each)
-            subset = stvea.codex_cluster_names_transferred.loc[index, "0"]
+            subset = stvea.codex_cluster_names_transferred.loc[index, 0]
             subset_value_count = subset.value_counts()
             transferred_majority = subset_value_count.idxmax()
             count_sum = subset_value_count.sum()
             subset_value_percent = subset_value_count / count_sum
-            print(f"CODEX cluster {each} transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
-
+            print(f"CODEX cluster {each} ({subset.shape[0]} cells) transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
 
     def test_cluster_codex(self):
 

@@ -324,10 +324,11 @@ class DataProcessor:
             scores.append(self.sse(fits[index].x, p_obs))
 
         m = min(scores)
+        self.overall_sse += m
+
         # pick the data with minimal SSE
         for index, score in enumerate(scores):
             if score == m:
-                self.overall_sse += m
                 best_fit = fits[index].x
                 break
 

@@ -34,7 +34,7 @@ class Cluster:
         """
         row.apply(lambda col: edge_list.append([row_name, col]))
 
-    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=False, threshold=(0.01, 0.001, 0.01, 0.01), markers = ("B220", "Ly6G", "NKp46", "TCR")):
+    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=False, threshold=(0.01, 0.001, (0.01, 0.1), 0.01), markers = ("B220", "Ly6G", ("NKp46", "CD45"), "TCR")):
         """
         This function will cluster codex cells.
 
@@ -51,10 +51,18 @@ class Cluster:
         if knn_option == 4:
             self.stvea.codex_cluster = pd.DataFrame(-1, index=self.stvea.codex_protein.index, columns=range(1))
             # only focus on B cells, T cells, Neutrophils, and NK cells
+            n_cells_total = self.stvea.codex_protein_corrected.shape[0]
             for index, marker in enumerate(markers):
-                self.stvea.codex_protein_corrected = self.stvea.codex_protein
-                n_cells = self.stvea.codex_protein_corrected.shape[0]
-                n_cells = math.floor(threshold[index] * n_cells)
+                if isinstance(marker, tuple):
+                    codex_cluster_copy = pd.Series(True, index=self.stvea.codex_protein.index)
+                    for sub_threshold, sub_marker in zip(threshold[index], marker):
+                        n_cells = math.floor(sub_threshold * n_cells_total)
+                        temp = pd.Series(False, index=self.stvea.codex_protein.index)
+                        temp.loc[self.stvea.codex_protein_corrected.nlargest(n_cells, sub_marker).index] = True
+                        codex_cluster_copy = codex_cluster_copy & temp
+                    self.stvea.codex_cluster.loc[codex_cluster_copy, :] = index + 1
+                    continue
+                n_cells = math.floor(threshold[index] * n_cells_total)
                 marker_cells = self.stvea.codex_protein_corrected.nlargest(n_cells, marker).index
                 self.stvea.codex_cluster.loc[marker_cells, :] = index + 1
             return
@@ -231,6 +239,17 @@ class Cluster:
             self.stvea.cite_emb = pd.DataFrame(res)
 
         return
+
+    def plot_cite(self):
+        self.cite_umap();
+        df = pd.DataFrame({'x': self.stvea.cite_emb.iloc[:, 0],
+                           'y': self.stvea.cite_emb.iloc[:, 1],
+                           'Clusters': self.stvea.cite_cluster.iloc[:, 0]})
+        plt.figure(figsize=(12, 12));
+        sns.scatterplot(data=df, x="x", y="y", hue="Clusters", palette="deep", s=10)
+        plt.title("CITE-seq cells umap plot")
+        plt.show()
+
 
     @staticmethod
     def run_hdbscan(umap_latent,

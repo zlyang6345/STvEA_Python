@@ -21,6 +21,15 @@ class TestController(TestCase):
         # transfer labels
         annotation.transfer_labels()
 
+        export = True
+        if export:
+            stvea.cite_cluster.to_csv("../Tests/ToImproveTPR/cite_cluster.csv")
+            stvea.cite_mRNA.to_csv("../Tests/ToImproveTPR/cite_mRNA.csv")
+            stvea.codex_cluster_names_transferred.to_csv("../Tests/ToImproveTPR/codex_cluster_names_transferred.csv")
+            stvea.codex_protein.to_csv("../Tests/ToImproveTPR/codex_protein.csv")
+            stvea.codex_protein_corrected.to_csv("../Tests/ToImproveTPR/codex_protein_corrected.csv")
+            stvea.transfer_matrix.to_csv("../Tests/ToImproveTPR/transfer_matrix.csv")
+
         # user input CODEX cluster names
         annotation.cluster_names(cluster_index, 2, option=2)
 
@@ -36,8 +45,8 @@ class TestController(TestCase):
         equality = combined.apply(lambda x: x[0] == x[1], axis=1)
 
         # filter out these CODEX cells that user does not assign a CODEX cluster name or whose transferred label is null.
-        mask = ((combined["Original"] != "") & (combined["Transferred"] != ""))
-        combined = combined[mask]
+        # mask = ((combined["Original"] != "") & (combined["Transferred"] != ""))
+        # combined = combined[mask]
 
         # print each cell type's result
         reality = "Original"
@@ -73,7 +82,7 @@ class TestController(TestCase):
             count_sum = subset_value_count.sum()
             subset_value_percent = subset_value_count / count_sum
 
-            print(f"CODEX cluster {each} transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
+            print(f"CODEX cluster {each} ({subset.shape[0]} cells) transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
 
 
     def test_partial_evaluation(self):
@@ -124,9 +133,7 @@ class TestController(TestCase):
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
             cluster_codex_k=4,
-            cluster_codex_knn_option=4,
-            cluster_codex_threshold=(0.01, 0.001, 0.001, 0.01),
-            markers=("B220", "Ly6G", "NKp46", "TCR"),
+            cluster_codex_knn_option=1,
             # parameter_scan args
             parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
             parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
@@ -152,3 +159,7 @@ class TestController(TestCase):
 
         # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation)
+
+
+
+

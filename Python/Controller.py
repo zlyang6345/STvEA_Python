@@ -166,8 +166,6 @@ class Controller:
         if mask:
             self.data_processor.discard_codex(stvea=self.stvea)
 
-
-
         # cluster CODEX cells
         self.cluster.cluster_codex(k=cluster_codex_k,
                                    knn_option=cluster_codex_knn_option,
