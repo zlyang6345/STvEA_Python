@@ -35,16 +35,16 @@ class TestCluster(TestCase):
                                        ignore_warnings=ignore_warnings,
                                        method=clean_cite_method)
         # parameter_scan args
-        parameter_scan_min_cluster_size_range = tuple(range(5, 21, 4))
-        parameter_scan_min_sample_range = tuple(range(10, 41, 3))
-        parameter_scan_n_neighbors = 50
-        parameter_scan_min_dist = 0.1
+        parameter_scan_min_cluster_size_range = tuple(range(3, 10, 4))
+        parameter_scan_min_sample_range = tuple(range(3, 10, 3))
+        parameter_scan_n_neighbors = 20
+        parameter_scan_min_dist = 0.05
         parameter_scan_negative_sample_rate = 50
         parameter_scan_metric = "correlation"
         # consensus_cluster args
-        consensus_cluster_silhouette_cutoff = 0.130
+        consensus_cluster_silhouette_cutoff = -0.07
         consensus_cluster_inconsistent_value = 0.1
-        consensus_cluster_min_cluster_size = 10
+        consensus_cluster_min_cluster_size = 8
 
         # cluster CITE cells
         cluster.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,

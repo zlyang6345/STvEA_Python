@@ -205,6 +205,7 @@ class Cluster:
                   n_neighbors=50,
                   min_dist=0.1,
                   negative_sample_rate=50,
+                  random_state=0,
                   ignore_warnings=True):
         """
         This function will perform umap on cite_latent or cite_mrna data,
@@ -234,7 +235,7 @@ class Cluster:
         elif not self.stvea.cite_mRNA.empty:
             # implemented, but not recommended
             res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
-                            negative_sample_rate=negative_sample_rate, n_components=2).fit_transform(
+                            negative_sample_rate=negative_sample_rate, n_components=2, random_state=random_state).fit_transform(
                 self.stvea.cite_mRNA)
             self.stvea.cite_emb = pd.DataFrame(res)
 
@@ -338,6 +339,7 @@ class Cluster:
                 "silhouette_score": score
             })
 
+        print("all_scores", all_scores)
         # plotting histogram of all silhouette scores
         plt.hist(all_scores, bins=100)
         plt.title(title + "Histogram of silhouette scores")
