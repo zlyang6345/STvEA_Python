@@ -73,14 +73,14 @@ class Annotation:
             clusters = self.stvea.cite_cluster
             # creat a dataframe
             combined_df = deepcopy(self.stvea.cite_mRNA[marker])
-            title = "Heatmap of Average CITE-seq Gene Expression by Cluster (mRNA)"
+            title = "Heatmap of Average CITE-seq Gene Expression by Cluster (mRNA) "
             dataset_type = "CITE-seq"
         else:
             # codex
             clusters = self.stvea.codex_cluster
             # creat a dataframe
             combined_df = deepcopy(self.stvea.codex_protein)
-            title = "Heatmap of Average CODEX Gene Expression by Cluster (Protein)"
+            title = "Heatmap of Average CODEX Gene Expression by Cluster (Protein) "
             dataset_type = "CODEX"
 
 

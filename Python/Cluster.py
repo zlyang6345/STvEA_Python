@@ -331,7 +331,7 @@ class Cluster:
         for label in hdbscan_labels:
             # calculate silhouette scores
             # score = silhouette_score(cite_latent, label, metric="correlation")
-            scores = silhouette_samples(data, label, metric="euclidean")
+            scores = silhouette_samples(data, label, metric="correlation")
             score = np.mean(scores)
             all_scores.append(score)
             hdbscan_results.append({
@@ -380,6 +380,7 @@ class Cluster:
 
     def consensus_cluster(self,
                           silhouette_cutoff,
+                          silhouette_cutoff_percentile,
                           inconsistent_value,
                           min_cluster_size,
                           option=1):
@@ -398,6 +399,10 @@ class Cluster:
         # initialize a consensus matrix
         consensus_matrix = np.zeros((num_cells, num_cells))
         total_runs = 0
+
+        if silhouette_cutoff == None:
+            scores = [x['silhouette_score'] for x in hdbscan_results]
+            silhouette_cutoff = np.percentile(scores, silhouette_cutoff_percentile)
 
         # scan each result in the hdbscan_results
         for result in hdbscan_results:

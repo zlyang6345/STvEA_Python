@@ -12,9 +12,34 @@ import Annotation
 class TestCluster(TestCase):
 
     def test_optimize_cite_cluster(self):
+#         very fine resolution
+#         parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
+#         parameter_scan_min_sample_range = tuple(range(14, 15, 1))
+#         parameter_scan_n_neighbors = 30
+#         parameter_scan_min_dist = 0.1
+#         parameter_scan_negative_sample_rate = 50
+#         parameter_scan_metric = "correlation"
+#         # consensus_cluster args
+#         consensus_cluster_silhouette_cutoff = None
+#         consensus_cluster_inconsistent_value = 0.1
+#         consensus_cluster_min_cluster_size = 8
+#         so far the best one
+#         # parameter_scan args
+#         parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
+#         parameter_scan_min_sample_range = tuple(range(14, 15, 1))
+#         parameter_scan_n_neighbors = 40
+#         parameter_scan_min_dist = 0.1
+#         parameter_scan_negative_sample_rate = 50
+#         parameter_scan_metric = "correlation"
+#         # consensus_cluster args
+#         consensus_cluster_silhouette_cutoff = None
+#         consensus_cluster_inconsistent_value = 0.1
+#         consensus_cluster_min_cluster_size = 8
+
         stvea = STvEA.STvEA()
         cluster = Cluster.Cluster(stvea)
         data_processor = DataProcessor.DataProcessor(stvea)
+        an = Annotation.Annotation(stvea)
         data_processor.read_cite(cite_latent="../Data/raw_dataset/cite_latent.csv",
                                       cite_protein="../Data/raw_dataset/cite_protein.csv",
                                       cite_mrna="../Data/raw_dataset/cite_mRNA.csv")
@@ -35,14 +60,14 @@ class TestCluster(TestCase):
                                        ignore_warnings=ignore_warnings,
                                        method=clean_cite_method)
         # parameter_scan args
-        parameter_scan_min_cluster_size_range = tuple(range(3, 10, 4))
-        parameter_scan_min_sample_range = tuple(range(3, 10, 3))
-        parameter_scan_n_neighbors = 20
-        parameter_scan_min_dist = 0.05
+        parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
+        parameter_scan_min_sample_range = tuple(range(14, 15, 1))
+        parameter_scan_n_neighbors = 40
+        parameter_scan_min_dist = 0.1
         parameter_scan_negative_sample_rate = 50
         parameter_scan_metric = "correlation"
         # consensus_cluster args
-        consensus_cluster_silhouette_cutoff = -0.07
+        consensus_cluster_silhouette_cutoff = None
         consensus_cluster_inconsistent_value = 0.1
         consensus_cluster_min_cluster_size = 8
 
@@ -54,12 +79,13 @@ class TestCluster(TestCase):
                                     negative_sample_rate=parameter_scan_negative_sample_rate,
                                     metric=parameter_scan_metric)
 
-        cluster.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
+        cluster.consensus_cluster( silhouette_cutoff=consensus_cluster_silhouette_cutoff,
+                                  silhouette_cutoff_percentile=95,
                                        inconsistent_value=consensus_cluster_inconsistent_value,
                                        min_cluster_size=consensus_cluster_min_cluster_size)
 
         cluster.plot_cite()
-
+        an.cluster_heatmap(1)
     def test_improve_tpr(self):
 
         stvea = STvEA.STvEA()

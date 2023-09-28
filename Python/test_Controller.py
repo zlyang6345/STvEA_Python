@@ -10,7 +10,8 @@ class TestController(TestCase):
 
     @staticmethod
     def partial_evaluation(stvea,
-                           annotation):
+                           annotation,
+                           export=False):
         """
         This function will evaluate the performance of label transferring based on given data stored in STvEA object.
         """
@@ -21,7 +22,6 @@ class TestController(TestCase):
         # transfer labels
         annotation.transfer_labels()
 
-        export = True
         if export:
             stvea.cite_cluster.to_csv("../Tests/ToImproveTPR/cite_cluster.csv")
             stvea.cite_mRNA.to_csv("../Tests/ToImproveTPR/cite_mRNA.csv")
@@ -63,7 +63,7 @@ class TestController(TestCase):
             # true negative rate
             tnr = (non_type_cells_reality & non_type_cells_test).sum() / non_type_cells_reality.sum()
 
-            print(f"{type}: TPR: {round(tpr*100, 2)}% TNR: {round(tnr*100, 2)}%")
+            print(f"{type}: TPR: {round(tpr * 100, 2)}% TNR: {round(tnr * 100, 2)}%")
 
             index = (combined["Original"] == type)
             subset = combined.loc[index,]
@@ -82,8 +82,8 @@ class TestController(TestCase):
             count_sum = subset_value_count.sum()
             subset_value_percent = subset_value_count / count_sum
 
-            print(f"CODEX cluster {each} ({subset.shape[0]} cells) transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
-
+            print(
+                f"CODEX cluster {each} ({subset.shape[0]} cells) transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
 
     def test_partial_evaluation(self):
         stvea = STvEA.STvEA()
@@ -159,7 +159,3 @@ class TestController(TestCase):
 
         # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation)
-
-
-
-
