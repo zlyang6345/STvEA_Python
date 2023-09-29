@@ -60,10 +60,12 @@ class Controller:
                  parameter_scan_min_dist=0.1,
                  parameter_scan_negative_sample_rate=50,
                  parameter_scan_metric="correlation",
+                 silhoutte_metric="correlation",
                  # consensus_cluster args
                  consensus_cluster_silhouette_cutoff=0.114,
                  consensus_cluster_inconsistent_value=0.1,
                  consensus_cluster_min_cluster_size=10,
+                 silhouette_cutoff_percentile=95,
                  # map_codex_to_cite args
                  k_find_nn=80,
                  k_find_anchor=20,
@@ -178,8 +180,10 @@ class Controller:
                                     n_neighbors=parameter_scan_n_neighbors,
                                     min_dist=parameter_scan_min_dist,
                                     negative_sample_rate=parameter_scan_negative_sample_rate,
-                                    metric=parameter_scan_metric)
+                                    cluster_metric=parameter_scan_metric,
+                                    silhoutte_metric=silhoutte_metric)
 
         self.cluster.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
                                        inconsistent_value=consensus_cluster_inconsistent_value,
-                                       min_cluster_size=consensus_cluster_min_cluster_size)
+                                       min_cluster_size=consensus_cluster_min_cluster_size,
+                                       silhouette_cutoff_percentile=silhouette_cutoff_percentile)

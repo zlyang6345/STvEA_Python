@@ -11,7 +11,7 @@ class TestController(TestCase):
     @staticmethod
     def partial_evaluation(stvea,
                            annotation,
-                           export=False):
+                           export=True):
         """
         This function will evaluate the performance of label transferring based on given data stored in STvEA object.
         """
@@ -135,16 +135,18 @@ class TestController(TestCase):
             cluster_codex_k=4,
             cluster_codex_knn_option=1,
             # parameter_scan args
-            parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
-            parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
-            parameter_scan_n_neighbors=50,
+            parameter_scan_min_cluster_size_range=tuple(range(2, 3, 1)),
+            parameter_scan_min_sample_range=tuple(range(14, 15, 1)),
+            parameter_scan_n_neighbors=40,
             parameter_scan_min_dist=0.1,
             parameter_scan_negative_sample_rate=50,
             parameter_scan_metric="correlation",
+            silhoutte_metric="correlation",
             # consensus_cluster args
-            consensus_cluster_silhouette_cutoff=0.130,
+            consensus_cluster_silhouette_cutoff=None,
             consensus_cluster_inconsistent_value=0.1,
-            consensus_cluster_min_cluster_size=10,
+            consensus_cluster_min_cluster_size=8,
+            silhouette_cutoff_percentile=95,
             # map_codex_to_cite args
             k_find_nn=80,
             k_find_anchor=20,

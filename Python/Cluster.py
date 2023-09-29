@@ -289,7 +289,8 @@ class Cluster:
                        n_neighbors=50,
                        min_dist=0.1,
                        negative_sample_rate=50,
-                       metric="correlation",
+                       cluster_metric="correlation",
+                       silhoutte_metric="correlation",
                        random_state=0,
                        option=1):
         """
@@ -318,12 +319,12 @@ class Cluster:
                             n_neighbors=n_neighbors,
                             min_dist=min_dist,
                             negative_sample_rate=negative_sample_rate,
-                            metric=metric,
+                            metric=cluster_metric,
                             random_state=random_state)
         umap_latent = reducer.fit_transform(data)
 
         # running HDBSCAN on the UMAP space
-        hdbscan_labels = Cluster.run_hdbscan(umap_latent, min_cluster_size_range, min_sample_range, metric=metric)
+        hdbscan_labels = Cluster.run_hdbscan(umap_latent, min_cluster_size_range, min_sample_range, metric=cluster_metric)
 
         # calculate scores
         all_scores = []
@@ -331,7 +332,7 @@ class Cluster:
         for label in hdbscan_labels:
             # calculate silhouette scores
             # score = silhouette_score(cite_latent, label, metric="correlation")
-            scores = silhouette_samples(data, label, metric="correlation")
+            scores = silhouette_samples(data, label, metric=silhoutte_metric)
             score = np.mean(scores)
             all_scores.append(score)
             hdbscan_results.append({

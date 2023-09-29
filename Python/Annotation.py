@@ -1,5 +1,5 @@
 from copy import deepcopy
-
+import re
 import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
@@ -191,8 +191,10 @@ class Annotation:
 
             with open(file_path, "r") as file:
                 for line in file:
-                    arrays = line.strip().split(": ")
-                    cluster_names[int(arrays[0])] = arrays[1]
+                    [name, indices_str] = line.strip().split(": ")
+                    indices = indices_str.strip().split(", ")
+                    for index in indices:
+                        cluster_names[int(index)] = name
 
             for index in cluster_index:
                 if index not in cluster_names.keys():

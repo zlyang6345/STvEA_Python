@@ -77,7 +77,8 @@ class TestCluster(TestCase):
                                     n_neighbors=parameter_scan_n_neighbors,
                                     min_dist=parameter_scan_min_dist,
                                     negative_sample_rate=parameter_scan_negative_sample_rate,
-                                    metric=parameter_scan_metric)
+                                    cluster_metric=parameter_scan_metric,
+                                    silhoutte_metric="correlation")
 
         cluster.consensus_cluster( silhouette_cutoff=consensus_cluster_silhouette_cutoff,
                                   silhouette_cutoff_percentile=95,
