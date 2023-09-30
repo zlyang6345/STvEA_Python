@@ -228,7 +228,7 @@ class Cluster:
         if not self.stvea.cite_latent.empty:
             # recommended
             res = umap.UMAP(n_neighbors=n_neighbors, metric=metric, min_dist=min_dist,
-                            negative_sample_rate=negative_sample_rate, n_components=2).fit_transform(
+                            negative_sample_rate=negative_sample_rate, n_components=2, random_state=random_state).fit_transform(
                 self.stvea.cite_latent)
             self.stvea.cite_emb = pd.DataFrame(res)
 
@@ -241,8 +241,19 @@ class Cluster:
 
         return
 
+    def plot_codex(self):
+        self.codex_umap()
+        df = pd.DataFrame({'x': self.stvea.codex_emb.iloc[:, 0],
+                           'y': self.stvea.codex_emb.iloc[:, 1],
+                           'Clusters': self.stvea.codex_cluster.iloc[:, 0]})
+        plt.figure(figsize=(12, 12));
+        sns.scatterplot(data=df, x="x", y="y", hue="Clusters", palette="deep", s=10)
+        plt.title("CODEX cells umap plot")
+        plt.show()
+
     def plot_cite(self):
         self.cite_umap();
+        self.stvea.cite_emb.index = self.stvea.cite_cluster.index
         df = pd.DataFrame({'x': self.stvea.cite_emb.iloc[:, 0],
                            'y': self.stvea.cite_emb.iloc[:, 1],
                            'Clusters': self.stvea.cite_cluster.iloc[:, 0]})

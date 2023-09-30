@@ -87,6 +87,7 @@ class TestCluster(TestCase):
 
         cluster.plot_cite()
         an.cluster_heatmap(1)
+
     def test_improve_tpr(self):
 
         stvea = STvEA.STvEA()

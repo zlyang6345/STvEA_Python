@@ -160,4 +160,10 @@ class TestController(TestCase):
         )
 
         # invoke the partial evaluation
-        TestController.partial_evaluation(cn.stvea, cn.annotation)
+        TestController.partial_evaluation(cn.stvea, cn.annotation, export=False)
+
+        # plot cite
+        cn.cluster.plot_cite()
+
+        # plot CODEX
+        cn.cluster.plot_codex();
