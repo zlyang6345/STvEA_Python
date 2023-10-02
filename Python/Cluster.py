@@ -34,7 +34,7 @@ class Cluster:
         """
         row.apply(lambda col: edge_list.append([row_name, col]))
 
-    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=False, threshold=(0.01, 0.001, (0.01, 0.1), 0.01), markers = ("B220", "Ly6G", ("NKp46", "CD45"), "TCR")):
+    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=False, threshold=(0.01, 0.001, (0.01, 0.1), 0.01), markers = ("B220", "Ly6G", ("NKp46", "CD45"), "TCR"), plot_umap=True):
         """
         This function will cluster codex cells.
 
@@ -162,9 +162,11 @@ class Cluster:
                     plt.show()
 
             self.stvea.codex_cluster = temp
+
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")
-
+        if plot_umap:
+            self.plot_codex()
         return
 
 
@@ -480,3 +482,98 @@ class Cluster:
         print(f"Consensus cluster done. Time: {round(end - start, 3)} sec")
 
         return
+
+
+    def cluster_cite(self,
+                     option=1,
+                     # for parameter scan
+                     parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
+                     parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
+                     parameter_scan_n_neighbors=50,
+                     parameter_scan_min_dist=0.1,
+                     parameter_scan_negative_sample_rate=50,
+                     parameter_scan_cluster_metric="correlation",
+                     parameter_scan_silhoutte_metric="correlation",
+                     parameter_scan_random_state=0,
+                     # for consensus cluster
+                     consensus_cluster_silhouette_cutoff=None,
+                     consensus_cluster_silhouette_cutoff_percentile=95,
+                     consensus_cluster_inconsistent_value=0.1,
+                     consensus_cluster_min_cluster_size=8,
+                     consensus_cluster_option=1,
+                     # hdbscan
+                     hdbscan_min_cluster_size_range=2,
+                     hdbscan_min_sample_range=14,
+                     hdbscan_n_neighbors=50,
+                     hdbscan_min_dist=0.1,
+                     hdbscan_negative_sample_rate=50,
+                     hdbscan_cluster_metric="correlation",
+                     hdbscan_random_state=0,
+                     # plot
+                     plot_umap = True
+                     ):
+
+        if option == 1:
+            # traditional way
+            # parameter_scan + consensus_cluster
+            self.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
+                                min_sample_range=parameter_scan_min_sample_range,
+                                n_neighbors=parameter_scan_n_neighbors,
+                                min_dist=parameter_scan_min_dist,
+                                negative_sample_rate=parameter_scan_negative_sample_rate,
+                                cluster_metric=parameter_scan_cluster_metric,
+                                silhoutte_metric=parameter_scan_silhoutte_metric,
+                                random_state=parameter_scan_random_state,
+                                )
+            self.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
+                              silhouette_cutoff_percentile=consensus_cluster_silhouette_cutoff_percentile,
+                              inconsistent_value=consensus_cluster_inconsistent_value,
+                              min_cluster_size=consensus_cluster_min_cluster_size,
+                              option=consensus_cluster_option)
+        elif option == 2:
+            # parameter scan and pick the best one
+            self.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
+                                min_sample_range=parameter_scan_min_sample_range,
+                                n_neighbors=parameter_scan_n_neighbors,
+                                min_dist=parameter_scan_min_dist,
+                                negative_sample_rate=parameter_scan_negative_sample_rate,
+                                cluster_metric=parameter_scan_cluster_metric,
+                                silhoutte_metric=parameter_scan_silhoutte_metric,
+                                random_state=parameter_scan_random_state,
+                                )
+
+            maximum_index = -1
+            maximum_score = -2
+            labels = []
+            for index, dic in enumerate(self.stvea.hdbscan_scans):
+                score = dic['silhouette_score']
+                if score > maximum_score:
+                    maximum_score = score
+                    maximum_index = index
+
+            self.stvea.codex_cluster = pd.DataFrame(self.stvea.hdbscan_scans[index]['cluster_labels'])
+
+        elif option == 3:
+
+            # hdbscan only
+            data = self.stvea.cite_latent
+            reducer = umap.UMAP(n_components=data.shape[1],
+                                n_neighbors=hdbscan_n_neighbors,
+                                min_dist=hdbscan_min_dist,
+                                negative_sample_rate=hdbscan_negative_sample_rate,
+                                metric=hdbscan_cluster_metric,
+                                random_state=hdbscan_random_state)
+
+            umap_latent = reducer.fit_transform(data)
+
+            cluster = hdbscan.HDBSCAN(min_cluster_size=int(hdbscan_min_cluster_size_range),
+                                      min_samples=int(hdbscan_min_sample_range),
+                                      metric=hdbscan_cluster_metric,
+                                      memory='./HDBSCAN_cache')
+
+            hdbscan_labels = cluster.fit_predict(umap_latent)
+
+            self.stvea.cite_cluster = pd.DataFrame(hdbscan_labels)
+
+        if plot_umap:
+            self.plot_cite()

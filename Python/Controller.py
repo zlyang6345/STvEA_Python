@@ -54,6 +54,7 @@ class Controller:
                  cluster_codex_threshold=(0.01, 0.001, 0.01, 0.01),
                  markers=("B220", "Ly6G", "NKp46", "TCR"),
                  # parameter_scan args
+                 cluster_cite_option=1,
                  parameter_scan_min_cluster_size_range=tuple(range(5, 21, 4)),
                  parameter_scan_min_sample_range=tuple(range(10, 41, 3)),
                  parameter_scan_n_neighbors=50,
@@ -66,6 +67,14 @@ class Controller:
                  consensus_cluster_inconsistent_value=0.1,
                  consensus_cluster_min_cluster_size=10,
                  silhouette_cutoff_percentile=95,
+                 # cite hdbscan
+                 hdbscan_min_cluster_size_range=2,
+                 hdbscan_min_sample_range=14,
+                 hdbscan_n_neighbors=50,
+                 hdbscan_min_dist=0.1,
+                 hdbscan_negative_sample_rate=50,
+                 hdbscan_cluster_metric="correlation",
+                 hdbscan_random_state=0,
                  # map_codex_to_cite args
                  k_find_nn=80,
                  k_find_anchor=20,
@@ -172,18 +181,32 @@ class Controller:
         self.cluster.cluster_codex(k=cluster_codex_k,
                                    knn_option=cluster_codex_knn_option,
                                    threshold=cluster_codex_threshold,
-                                   markers=markers)
+                                   markers=markers,
+                                   plot_umap=True)
 
         # cluster CITE cells
-        self.cluster.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
-                                    min_sample_range=parameter_scan_min_sample_range,
-                                    n_neighbors=parameter_scan_n_neighbors,
-                                    min_dist=parameter_scan_min_dist,
-                                    negative_sample_rate=parameter_scan_negative_sample_rate,
-                                    cluster_metric=parameter_scan_metric,
-                                    silhoutte_metric=silhoutte_metric)
-
-        self.cluster.consensus_cluster(silhouette_cutoff=consensus_cluster_silhouette_cutoff,
-                                       inconsistent_value=consensus_cluster_inconsistent_value,
-                                       min_cluster_size=consensus_cluster_min_cluster_size,
-                                       silhouette_cutoff_percentile=silhouette_cutoff_percentile)
+        self.cluster.cluster_cite(option=cluster_cite_option,
+                                  # for parameter scan
+                                  parameter_scan_min_cluster_size_range=parameter_scan_min_cluster_size_range,
+                                  parameter_scan_min_sample_range=parameter_scan_min_sample_range,
+                                  parameter_scan_n_neighbors=parameter_scan_n_neighbors,
+                                  parameter_scan_min_dist=parameter_scan_min_dist,
+                                  parameter_scan_negative_sample_rate=parameter_scan_negative_sample_rate,
+                                  parameter_scan_cluster_metric=parameter_scan_metric,
+                                  parameter_scan_silhoutte_metric=silhoutte_metric,
+                                  parameter_scan_random_state=0,
+                                  # for consensus cluster
+                                  consensus_cluster_silhouette_cutoff=consensus_cluster_silhouette_cutoff,
+                                  consensus_cluster_silhouette_cutoff_percentile=silhouette_cutoff_percentile,
+                                  consensus_cluster_inconsistent_value=consensus_cluster_inconsistent_value,
+                                  consensus_cluster_min_cluster_size=consensus_cluster_min_cluster_size,
+                                  # hdbscan
+                                  hdbscan_min_cluster_size_range=hdbscan_min_cluster_size_range,
+                                  hdbscan_min_sample_range=hdbscan_min_sample_range,
+                                  hdbscan_n_neighbors=hdbscan_n_neighbors,
+                                  hdbscan_min_dist=hdbscan_min_dist,
+                                  hdbscan_negative_sample_rate=hdbscan_negative_sample_rate,
+                                  hdbscan_cluster_metric=hdbscan_cluster_metric,
+                                  hdbscan_random_state=hdbscan_random_state,
+                                  # plot
+                                  plot_umap=True)

@@ -12,37 +12,37 @@ import Annotation
 class TestCluster(TestCase):
 
     def test_optimize_cite_cluster(self):
-#         very fine resolution
-#         parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
-#         parameter_scan_min_sample_range = tuple(range(14, 15, 1))
-#         parameter_scan_n_neighbors = 30
-#         parameter_scan_min_dist = 0.1
-#         parameter_scan_negative_sample_rate = 50
-#         parameter_scan_metric = "correlation"
-#         # consensus_cluster args
-#         consensus_cluster_silhouette_cutoff = None
-#         consensus_cluster_inconsistent_value = 0.1
-#         consensus_cluster_min_cluster_size = 8
-#         so far the best one
-#         # parameter_scan args
-#         parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
-#         parameter_scan_min_sample_range = tuple(range(14, 15, 1))
-#         parameter_scan_n_neighbors = 40
-#         parameter_scan_min_dist = 0.1
-#         parameter_scan_negative_sample_rate = 50
-#         parameter_scan_metric = "correlation"
-#         # consensus_cluster args
-#         consensus_cluster_silhouette_cutoff = None
-#         consensus_cluster_inconsistent_value = 0.1
-#         consensus_cluster_min_cluster_size = 8
+        #         very fine resolution
+        #         parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
+        #         parameter_scan_min_sample_range = tuple(range(14, 15, 1))
+        #         parameter_scan_n_neighbors = 30
+        #         parameter_scan_min_dist = 0.1
+        #         parameter_scan_negative_sample_rate = 50
+        #         parameter_scan_metric = "correlation"
+        #         # consensus_cluster args
+        #         consensus_cluster_silhouette_cutoff = None
+        #         consensus_cluster_inconsistent_value = 0.1
+        #         consensus_cluster_min_cluster_size = 8
+        #         so far the best one
+        #         # parameter_scan args
+        #         parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
+        #         parameter_scan_min_sample_range = tuple(range(14, 15, 1))
+        #         parameter_scan_n_neighbors = 40
+        #         parameter_scan_min_dist = 0.1
+        #         parameter_scan_negative_sample_rate = 50
+        #         parameter_scan_metric = "correlation"
+        #         # consensus_cluster args
+        #         consensus_cluster_silhouette_cutoff = None
+        #         consensus_cluster_inconsistent_value = 0.1
+        #         consensus_cluster_min_cluster_size = 8
 
         stvea = STvEA.STvEA()
         cluster = Cluster.Cluster(stvea)
         data_processor = DataProcessor.DataProcessor(stvea)
         an = Annotation.Annotation(stvea)
         data_processor.read_cite(cite_latent="../Data/raw_dataset/cite_latent.csv",
-                                      cite_protein="../Data/raw_dataset/cite_protein.csv",
-                                      cite_mrna="../Data/raw_dataset/cite_mRNA.csv")
+                                 cite_protein="../Data/raw_dataset/cite_protein.csv",
+                                 cite_mrna="../Data/raw_dataset/cite_mRNA.csv")
         data_processor.take_subset(amount_codex=-1,
                                    amount_cite=-1)
         maxit = 500
@@ -55,48 +55,51 @@ class TestCluster(TestCase):
         ignore_warnings = True
         clean_cite_method = "l-bfgs-b"
         data_processor.clean_cite(maxit=maxit,
-                                       factr=factr,
-                                       optim_init=optim_init,
-                                       ignore_warnings=ignore_warnings,
-                                       method=clean_cite_method)
-        # parameter_scan args
-        parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
-        parameter_scan_min_sample_range = tuple(range(14, 15, 1))
-        parameter_scan_n_neighbors = 40
-        parameter_scan_min_dist = 0.1
-        parameter_scan_negative_sample_rate = 50
-        parameter_scan_metric = "correlation"
-        # consensus_cluster args
-        consensus_cluster_silhouette_cutoff = None
-        consensus_cluster_inconsistent_value = 0.1
-        consensus_cluster_min_cluster_size = 8
+                                  factr=factr,
+                                  optim_init=optim_init,
+                                  ignore_warnings=ignore_warnings,
+                                  method=clean_cite_method)
 
         # cluster CITE cells
-        cluster.parameter_scan(min_cluster_size_range=parameter_scan_min_cluster_size_range,
-                                    min_sample_range=parameter_scan_min_sample_range,
-                                    n_neighbors=parameter_scan_n_neighbors,
-                                    min_dist=parameter_scan_min_dist,
-                                    negative_sample_rate=parameter_scan_negative_sample_rate,
-                                    cluster_metric=parameter_scan_metric,
-                                    silhoutte_metric="correlation")
-
-        cluster.consensus_cluster( silhouette_cutoff=consensus_cluster_silhouette_cutoff,
-                                  silhouette_cutoff_percentile=95,
-                                       inconsistent_value=consensus_cluster_inconsistent_value,
-                                       min_cluster_size=consensus_cluster_min_cluster_size)
-
-        cluster.plot_cite()
-        an.cluster_heatmap(1)
+        cluster.cluster_cite(option=3,
+                             # for parameter scan
+                             parameter_scan_min_cluster_size_range=tuple(range(2, 3, 1)),
+                             parameter_scan_min_sample_range=tuple(range(14, 15, 1)),
+                             parameter_scan_n_neighbors=40,
+                             parameter_scan_min_dist=0.1,
+                             parameter_scan_negative_sample_rate=50,
+                             parameter_scan_cluster_metric="correlation",
+                             parameter_scan_silhoutte_metric='correlation',
+                             parameter_scan_random_state=0,
+                             # for consensus cluster
+                             consensus_cluster_silhouette_cutoff=None,
+                             consensus_cluster_silhouette_cutoff_percentile=95,
+                             consensus_cluster_inconsistent_value=0.1,
+                             consensus_cluster_min_cluster_size=8,
+                             # hdbscan
+                             hdbscan_min_cluster_size_range=2,
+                             hdbscan_min_sample_range=14,
+                             hdbscan_n_neighbors=40,
+                             hdbscan_min_dist=0.1,
+                             hdbscan_negative_sample_rate=50,
+                             hdbscan_cluster_metric='correlation',
+                             hdbscan_random_state=0,
+                             # plot
+                             plot_umap=True)
+        an.cluster_heatmap(1, option=1)
 
     def test_improve_tpr(self):
 
         stvea = STvEA.STvEA()
         cluster = Cluster.Cluster(stvea)
         annotation = Annotation.Annotation(stvea)
-        stvea.codex_protein_corrected = pd.read_csv("../Tests/ToImproveTPR/codex_protein_corrected.csv", index_col=0, header=0).astype("float64")
-        stvea.codex_cluster_names_transferred = pd.read_csv("../Tests/ToImproveTPR/codex_cluster_names_transferred.csv", index_col=0, header=0).fillna("")
+        stvea.codex_protein_corrected = pd.read_csv("../Tests/ToImproveTPR/codex_protein_corrected.csv", index_col=0,
+                                                    header=0).astype("float64")
+        stvea.codex_cluster_names_transferred = pd.read_csv("../Tests/ToImproveTPR/codex_cluster_names_transferred.csv",
+                                                            index_col=0, header=0).fillna("")
         stvea.codex_cluster_names_transferred.columns = stvea.codex_cluster_names_transferred.columns.astype(int)
-        stvea.codex_protein = pd.read_csv("../Tests/ToImproveTPR/codex_protein.csv", index_col=0, header=0).astype("float64")
+        stvea.codex_protein = pd.read_csv("../Tests/ToImproveTPR/codex_protein.csv", index_col=0, header=0).astype(
+            "float64")
 
         # cluster CODEX cells
         cluster.cluster_codex(k=4, knn_option=1)
@@ -134,7 +137,7 @@ class TestCluster(TestCase):
             # true negative rate
             tnr = (non_type_cells_reality & non_type_cells_test).sum() / non_type_cells_reality.sum()
 
-            print(f"{type}: TPR: {round(tpr*100, 2)}% TNR: {round(tnr*100, 2)}%")
+            print(f"{type}: TPR: {round(tpr * 100, 2)}% TNR: {round(tnr * 100, 2)}%")
 
             index = (combined["Original"] == type)
             subset = combined.loc[index,]
@@ -152,7 +155,8 @@ class TestCluster(TestCase):
             transferred_majority = subset_value_count.idxmax()
             count_sum = subset_value_count.sum()
             subset_value_percent = subset_value_count / count_sum
-            print(f"CODEX cluster {each} ({subset.shape[0]} cells) transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
+            print(
+                f"CODEX cluster {each} ({subset.shape[0]} cells) transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
 
     def test_cluster_codex(self):
 

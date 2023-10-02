@@ -115,8 +115,8 @@ class TestController(TestCase):
             cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=-1,  # -1 ≈ 7000 cells
+            amount_codex=1000,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=1000,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),
@@ -135,6 +135,7 @@ class TestController(TestCase):
             cluster_codex_k=4,
             cluster_codex_knn_option=1,
             # parameter_scan args
+            cluster_cite_option=2,
             parameter_scan_min_cluster_size_range=tuple(range(2, 3, 1)),
             parameter_scan_min_sample_range=tuple(range(14, 15, 1)),
             parameter_scan_n_neighbors=40,
@@ -147,6 +148,14 @@ class TestController(TestCase):
             consensus_cluster_inconsistent_value=0.1,
             consensus_cluster_min_cluster_size=8,
             silhouette_cutoff_percentile=95,
+            # cite hdbscan
+            hdbscan_min_cluster_size_range=2,
+            hdbscan_min_sample_range=14,
+            hdbscan_n_neighbors=50,
+            hdbscan_min_dist=0.1,
+            hdbscan_negative_sample_rate=50,
+            hdbscan_cluster_metric="correlation",
+            hdbscan_random_state=0,
             # map_codex_to_cite args
             k_find_nn=80,
             k_find_anchor=20,
@@ -161,9 +170,3 @@ class TestController(TestCase):
 
         # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation, export=False)
-
-        # plot cite
-        cn.cluster.plot_cite()
-
-        # plot CODEX
-        cn.cluster.plot_codex();
