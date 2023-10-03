@@ -102,7 +102,7 @@ class TestCluster(TestCase):
             "float64")
 
         # cluster CODEX cells
-        cluster.cluster_codex(k=4, knn_option=1)
+        cluster.cluster_codex(k=4, option=5)
 
         # show the CODEX protein expression level
         cluster_index = annotation.cluster_heatmap(2, 2)

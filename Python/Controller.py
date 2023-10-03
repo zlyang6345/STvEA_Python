@@ -50,7 +50,7 @@ class Controller:
                  clean_cite_method="l-bfgs-b",
                  # cluster_codex args
                  cluster_codex_k=30,
-                 cluster_codex_knn_option=1,
+                 cluster_codex_option=1,
                  cluster_codex_threshold=(0.01, 0.001, 0.01, 0.01),
                  markers=("B220", "Ly6G", "NKp46", "TCR"),
                  # parameter_scan args
@@ -117,7 +117,7 @@ class Controller:
         @param clean_cite_method: a string to specify the method that will be used to fit the mixture binomial distribution.
         @param cluster_codex_k: the number of nearest neighbors to generate graph.
             The graph will be used to perform Louvain community detection.
-        @param cluster_codex_knn_option: the way to detect the nearest neighbors.
+        @param cluster_codex_option: the way to detect the nearest neighbors.
             1: use Pearson distance to find the nearest neighbors on CODEX protein data.
             2: use Euclidean distance to find the nearest neighbors on 2D CODEX embedding data.
         @param parameter_scan_min_cluster_size_range: a vector of min_cluster_size arguments to scan over.
@@ -179,7 +179,7 @@ class Controller:
 
         # cluster CODEX cells
         self.cluster.cluster_codex(k=cluster_codex_k,
-                                   knn_option=cluster_codex_knn_option,
+                                   option=cluster_codex_option,
                                    threshold=cluster_codex_threshold,
                                    markers=markers,
                                    plot_umap=True)

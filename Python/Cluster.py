@@ -34,41 +34,29 @@ class Cluster:
         """
         row.apply(lambda col: edge_list.append([row_name, col]))
 
-    def cluster_codex(self, k=30, knn_option=1, random_state=0, plot=False, threshold=(0.01, 0.001, (0.01, 0.1), 0.01), markers = ("B220", "Ly6G", ("NKp46", "CD45"), "TCR"), plot_umap=True):
+    def cluster_codex(self,
+                      k=30,
+                      option=1,
+                      random_state=0,
+                      plot=False,
+                      threshold=(0.01, 0.001, (0.01, 0.1), 0.01),
+                      markers = ("B220", "Ly6G", ("NKp46", "CD45"), "TCR"),
+                      plot_umap=True):
         """
         This function will cluster codex cells.
 
         @param random_state: an integer to specify the random state.
         @param k: the number of nearest neighbors to generate graph.
         The graph will be used to perform Louvain community detection.
-        @param knn_option: the way to detect the nearest neighbors.
+        @param option: the way to perform clustering.
         1: use Pearson distance to find the nearest neighbors on CODEX protein data.
         2: use Euclidean distance to find the nearest neighbors on 2D CODEX embedding data.
         """
         start = time.time()
         random.seed(0)
 
-        if knn_option == 4:
-            self.stvea.codex_cluster = pd.DataFrame(-1, index=self.stvea.codex_protein.index, columns=range(1))
-            # only focus on B cells, T cells, Neutrophils, and NK cells
-            n_cells_total = self.stvea.codex_protein_corrected.shape[0]
-            for index, marker in enumerate(markers):
-                if isinstance(marker, tuple):
-                    codex_cluster_copy = pd.Series(True, index=self.stvea.codex_protein.index)
-                    for sub_threshold, sub_marker in zip(threshold[index], marker):
-                        n_cells = math.floor(sub_threshold * n_cells_total)
-                        temp = pd.Series(False, index=self.stvea.codex_protein.index)
-                        temp.loc[self.stvea.codex_protein_corrected.nlargest(n_cells, sub_marker).index] = True
-                        codex_cluster_copy = codex_cluster_copy & temp
-                    self.stvea.codex_cluster.loc[codex_cluster_copy, :] = index + 1
-                    continue
-                n_cells = math.floor(threshold[index] * n_cells_total)
-                marker_cells = self.stvea.codex_protein_corrected.nlargest(n_cells, marker).index
-                self.stvea.codex_cluster.loc[marker_cells, :] = index + 1
-            return
-
         # find knn
-        if knn_option == 1 or knn_option == 3:
+        if option == 1 or option == 3:
             # use Pearson distance to find nearest neighbors on CODEX protein data.
 
             umap_results = umap.nearest_neighbors(X=self.stvea.codex_protein_corrected,
@@ -81,7 +69,7 @@ class Cluster:
             self.stvea.codex_knn = pd.DataFrame(umap_results[0])
             self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
 
-        elif knn_option == 2:
+        if option == 2:
             # use parameter_scan and consensus cluster
             # the same approach to cluster CITE-seq cells
             self.parameter_scan(min_cluster_size_range=tuple(range(5, 21, 4)),
@@ -98,8 +86,6 @@ class Cluster:
                                    option=2)
 
             return
-        else:
-            raise ValueError
 
         # convert to pandas dataframe
         codex_knn = pd.DataFrame(self.stvea.codex_knn)
@@ -115,7 +101,7 @@ class Cluster:
         self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
                                                 index=self.stvea.codex_protein_corrected.index) + 1
 
-        if knn_option == 3:
+        if option == 3:
             # use HDBSCAN to filter out noise within each cluster
             # not very good result
             temp = deepcopy(self.stvea.codex_cluster)
@@ -163,10 +149,50 @@ class Cluster:
 
             self.stvea.codex_cluster = temp
 
+        if option == 4:
+            self.stvea.codex_cluster = pd.DataFrame(-1, index=self.stvea.codex_protein.index, columns=range(1))
+            # only focus on B cells, T cells, Neutrophils, and NK cells
+            n_cells_total = self.stvea.codex_protein_corrected.shape[0]
+            for index, marker in enumerate(markers):
+                if isinstance(marker, tuple):
+                    codex_cluster_copy = pd.Series(True, index=self.stvea.codex_protein.index)
+                    for sub_threshold, sub_marker in zip(threshold[index], marker):
+                        n_cells = math.floor(sub_threshold * n_cells_total)
+                        temp = pd.Series(False, index=self.stvea.codex_protein.index)
+                        temp.loc[self.stvea.codex_protein_corrected.nlargest(n_cells, sub_marker).index] = True
+                        codex_cluster_copy = codex_cluster_copy & temp
+                    self.stvea.codex_cluster.loc[codex_cluster_copy, :] = index + 1
+                    continue
+                n_cells = math.floor(threshold[index] * n_cells_total)
+                marker_cells = self.stvea.codex_protein_corrected.nlargest(n_cells, marker).index
+                self.stvea.codex_cluster.loc[marker_cells, :] = index + 1
+            return
+
+        if option == 5:
+            data = self.stvea.codex_protein_corrected
+            reducer = umap.UMAP(n_components=data.shape[1],
+                                n_neighbors=40,
+                                min_dist=0.1,
+                                negative_sample_rate=50,
+                                metric="correlation",
+                                random_state=random_state)
+
+            umap_latent = reducer.fit_transform(data)
+
+            cluster = hdbscan.HDBSCAN(min_cluster_size=2,
+                                      min_samples=14,
+                                      metric="correlation",
+                                      memory='./HDBSCAN_cache')
+
+            hdbscan_labels = cluster.fit_predict(umap_latent)
+
+            self.stvea.codex_cluster = pd.DataFrame(hdbscan_labels)
+
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")
         if plot_umap:
             self.plot_codex()
+
         return
 
 
@@ -245,6 +271,7 @@ class Cluster:
 
     def plot_codex(self):
         self.codex_umap()
+        self.stvea.codex_emb.index = self.stvea.codex_cluster.index
         df = pd.DataFrame({'x': self.stvea.codex_emb.iloc[:, 0],
                            'y': self.stvea.codex_emb.iloc[:, 1],
                            'Clusters': self.stvea.codex_cluster.iloc[:, 0]})
@@ -573,7 +600,7 @@ class Cluster:
 
             hdbscan_labels = cluster.fit_predict(umap_latent)
 
-            self.stvea.cite_cluster = pd.DataFrame(hdbscan_labels)
+            self.stvea.cite_cluster = pd.DataFrame(hdbscan_labels) + 1
 
         if plot_umap:
             self.plot_cite()
