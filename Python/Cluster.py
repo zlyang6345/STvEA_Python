@@ -171,7 +171,7 @@ class Cluster:
         if option == 5:
             data = self.stvea.codex_protein_corrected
             reducer = umap.UMAP(n_components=data.shape[1],
-                                n_neighbors=40,
+                                n_neighbors=15,
                                 min_dist=0.1,
                                 negative_sample_rate=50,
                                 metric="correlation",
@@ -179,8 +179,8 @@ class Cluster:
 
             umap_latent = reducer.fit_transform(data)
 
-            cluster = hdbscan.HDBSCAN(min_cluster_size=2,
-                                      min_samples=14,
+            cluster = hdbscan.HDBSCAN(min_cluster_size=3,
+                                      min_samples=10,
                                       metric="correlation",
                                       memory='./HDBSCAN_cache')
 
@@ -191,7 +191,7 @@ class Cluster:
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")
         if plot_umap:
-            self.plot_codex()
+            self.plot_codex(n_neighbors=30)
 
         return
 
@@ -269,14 +269,15 @@ class Cluster:
 
         return
 
-    def plot_codex(self):
-        self.codex_umap()
+    def plot_codex(self,
+                   n_neighbors=30):
+        self.codex_umap(n_neighbors=n_neighbors)
         self.stvea.codex_emb.index = self.stvea.codex_cluster.index
         df = pd.DataFrame({'x': self.stvea.codex_emb.iloc[:, 0],
                            'y': self.stvea.codex_emb.iloc[:, 1],
                            'Clusters': self.stvea.codex_cluster.iloc[:, 0]})
         plt.figure(figsize=(12, 12));
-        sns.scatterplot(data=df, x="x", y="y", hue="Clusters", palette="deep", s=10)
+        sns.scatterplot(data=df, x="x", y="y", hue="Clusters", palette="tab20", s=10)
         plt.title("CODEX cells umap plot")
         plt.show()
 
@@ -287,7 +288,7 @@ class Cluster:
                            'y': self.stvea.cite_emb.iloc[:, 1],
                            'Clusters': self.stvea.cite_cluster.iloc[:, 0]})
         plt.figure(figsize=(12, 12));
-        sns.scatterplot(data=df, x="x", y="y", hue="Clusters", palette="deep", s=10)
+        sns.scatterplot(data=df, x="x", y="y", hue="Clusters", palette="tab20", s=10)
         plt.title("CITE-seq cells umap plot")
         plt.show()
 

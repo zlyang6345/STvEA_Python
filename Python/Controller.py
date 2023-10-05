@@ -149,11 +149,15 @@ class Controller:
         self.data_processor.read_cite(cite_latent=cite_latent,
                                       cite_protein=cite_protein,
                                       cite_mrna=cite_mrna)
+
+        # take a certain number of cells
         self.data_processor.take_subset(amount_codex=amount_codex,
                                         amount_cite=amount_cite)
         self.data_processor.filter_codex(size_lim=size_lim,
                                          blank_lower=blank_lower,
                                          blank_upper=blank_upper)
+
+        # clean CODEX cells and CITE-seq cells
         self.data_processor.clean_codex()
         self.data_processor.clean_cite(maxit=maxit,
                                        factr=factr,

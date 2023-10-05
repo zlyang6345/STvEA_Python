@@ -1,4 +1,4 @@
-B2 cells: 2, 12, 14, 17, 20, 22, 25, 33
-NK cells: 1
-T cells: 0
-Neutrophils: 3
+B2 cells: 5, 14, 15, 42, 46, 48, 65, 70
+NK cells: 4
+T cells: 1
+Neutrophils: 0

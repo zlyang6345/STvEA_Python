@@ -11,7 +11,7 @@ import Annotation
 
 class TestCluster(TestCase):
 
-    def test_optimize_cite_cluster(self):
+    def test_cluster_cite(self):
         #         very fine resolution
         #         parameter_scan_min_cluster_size_range = tuple(range(2, 3, 1))
         #         parameter_scan_min_sample_range = tuple(range(14, 15, 1))
@@ -88,7 +88,7 @@ class TestCluster(TestCase):
                              plot_umap=True)
         an.cluster_heatmap(1, option=1)
 
-    def test_improve_tpr(self):
+    def test_cluster_codex_complex(self):
 
         stvea = STvEA.STvEA()
         cluster = Cluster.Cluster(stvea)
@@ -102,7 +102,7 @@ class TestCluster(TestCase):
             "float64")
 
         # cluster CODEX cells
-        cluster.cluster_codex(k=4, option=5)
+        cluster.cluster_codex(k=4, option=5, plot=False)
 
         # show the CODEX protein expression level
         cluster_index = annotation.cluster_heatmap(2, 2)
@@ -158,7 +158,7 @@ class TestCluster(TestCase):
             print(
                 f"CODEX cluster {each} ({subset.shape[0]} cells) transferred majority: {round(subset_value_percent[transferred_majority] * 100, 3)} % {transferred_majority}")
 
-    def test_cluster_codex(self):
+    def test_cluster_codex_simple(self):
 
         stvea = STvEA.STvEA()
         data_processor = DataProcessor.DataProcessor(stvea)
@@ -168,8 +168,7 @@ class TestCluster(TestCase):
         data_processor.read_cite()
         # data_processor.filter_codex()
         data_processor.clean_codex()
-        cl.codex_umap()
-        cl.cluster_codex(knn_option=4)
+        cl.cluster_codex(option=5)
 
         # plot python
         plot_df = pd.DataFrame({"x": stvea.codex_emb[0], "y": stvea.codex_emb[1],
