@@ -58,7 +58,7 @@ class Mapping:
                                 columns=["CC" + str(i + 1) for i in range(num_cc)])
 
         end = time.time()
-        print(f"CCA space found. Time: {round(end - start, 3)} sec")
+        print(f"run_cca. Time: {round(end - start, 3)} sec")
         return cca_data
 
     @staticmethod
@@ -114,7 +114,7 @@ class Mapping:
         # convert to dataframe
         anchors = pd.DataFrame(anchors).astype("uint32")
         end = time.time()
-        print(f"Mutual nearest neighborhoods found! Time: {round(end - start, 3)} sec")
+        print(f"find_anchor_pairs Time: {round(end - start, 3)} sec")
         return anchors
 
     @staticmethod
@@ -158,7 +158,7 @@ class Mapping:
 
         end = time.time()
 
-        print(f"Neighborhoods found! Time: {round(end - start, 3)} sec")
+        print(f"find_nn_rna Time: {round(end - start, 3)} sec")
 
         return {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq,
                 'cellsr': ref_emb.index.values, 'cellsq': query_emb.index.values}
@@ -349,7 +349,7 @@ class Mapping:
             row = cor_dist_df.iloc[i, :]
             idx = row.argsort()[:k]
             neighbors.iloc[i, :] = idx
-            distances.iloc[i, :] = row[idx]
+            distances.iloc[i, :] = row.iloc[idx]
 
         return {'nn_idx': neighbors.astype("uint32"), 'nn_dists': distances}
 
@@ -378,7 +378,7 @@ class Mapping:
 
         anchors = anchors[np.logical_or(position1, position2)]
         end = time.time()
-        print(f"Retained {len(anchors)} anchors! Time: {round(end - start, 3)} sec")
+        print(f"filter_anchors Retained {len(anchors)} anchors! Time: {round(end - start, 3)} sec")
         return anchors
 
     @staticmethod
@@ -479,7 +479,7 @@ class Mapping:
         anchor_new['score'] = anchor_new['score'].clip(0, 1)
         anchors.sort_values("cellq", ascending=True, inplace=True)
         end = time.time()
-        print(f"Score anchors done. Time: {round(end - start, 3)} sec")
+        print(f"score_anchors. Time: {round(end - start, 3)} sec")
         return anchor_new
 
     @staticmethod
@@ -508,7 +508,7 @@ class Mapping:
         integration_matrix.index = neighbors["cellsq"][anchors["cellq"]]
 
         end = time.time()
-        print(f"Integration vectors found! Time: {round(end - start, 3)} sec")
+        print(f"find_integration_matrix Time: {round(end - start, 3)} sec")
 
         return integration_matrix
 
@@ -543,11 +543,11 @@ class Mapping:
         nn_dists = 1 - nn_dists.div(nn_dists.iloc[:, k_weight - 1], axis=0)
 
         # initialize a dataframe.
-        dists_weights = pd.DataFrame(data=0, index=cellsq, columns=range(len(anchor_cellsq)))
+        dists_weights = pd.DataFrame(data=0.0, index=cellsq, columns=range(len(anchor_cellsq)))
 
         # define a helper function
         def helper(row, index):
-            idx = nn_idx.loc[index]
+            idx = nn_idx.loc[index, ]
             row[idx] = nn_dists.loc[index]
             return row
 
@@ -572,7 +572,7 @@ class Mapping:
         end = time.time()
 
         # print a message.
-        print(f"Anchor weights found! Time: {round(end - start, 3)} sec")
+        print(f"find_weights Time: {round(end - start, 3)} sec")
 
         return weights
 
@@ -593,7 +593,7 @@ class Mapping:
         integrated = query_mat - bv
         stvea.codex_protein_corrected = integrated
         end = time.time()
-        print(f"Data integrated! Time: {round(end - start, 3)} sec")
+        print(f"transform_data_matrix Time: {round(end - start, 3)} sec")
         return
 
     def map_codex_to_cite(self,
@@ -607,6 +607,7 @@ class Mapping:
         Wrap up all functions in this class.
         """
         # find common proteins
+        start = time.time()
         common_protein = [protein for protein in self.stvea.codex_protein.columns if
                           protein in self.stvea.cite_protein.columns]
 
@@ -645,10 +646,14 @@ class Mapping:
 
         Mapping.transform_data_matrix(codex_subset, integration_matrix, weights, self.stvea)
 
+        end = time.time()
+        print(f"map_codex_to_cite: {round(end - start, 3)}")
+
     def transfer_matrix(self,
                         k=None,
                         c=0.1,
-                        mask_threshold=0.5):
+                        mask_threshold=0.5,
+                        mask=True):
         """
         This function builds a transfer matrix.
         @param k: number of the nearest neighbors to find.
@@ -676,8 +681,9 @@ class Mapping:
 
         # some CODEX cells may not have near neighbors
         # only cells below this threshold will be kept
-        self.stvea.codex_mask = nn_list["nn_dists"].mean(axis=1) < mask_threshold
-        self.stvea.codex_mask.index = self.stvea.codex_protein.index
+        if mask:
+            self.stvea.codex_mask = nn_list["nn_dists"].mean(axis=1) < mask_threshold
+            self.stvea.codex_mask.index = self.stvea.codex_protein.index
 
         # row-normalize the distance matrix
         nn_weights = nn_dists_exp.apply(lambda row: row / sum(row), axis=1)
@@ -701,6 +707,6 @@ class Mapping:
         self.stvea.transfer_matrix.columns = from_dataset.index
 
         end = time.time()
-        print(f"Transfer matrix constructed. Time: {round(end - start, 3)} sec")
+        print(f"transfer_matrix Time: {round(end - start, 3)} sec")
 
         return
