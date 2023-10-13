@@ -8,6 +8,7 @@ from Python.irlb import irlb
 from scipy.spatial import KDTree
 from scipy.sparse import csr_matrix
 from scipy.sparse import coo_matrix
+from sklearn.neighbors import NearestNeighbors
 
 
 class Mapping:
@@ -653,7 +654,8 @@ class Mapping:
                         k=None,
                         c=0.1,
                         mask_threshold=0.5,
-                        mask=True):
+                        mask=True,
+                        option=1):
         """
         This function builds a transfer matrix.
         @param k: number of the nearest neighbors to find.
@@ -675,14 +677,23 @@ class Mapping:
         # weight each nn based on gaussian kernel of distance
         # create weighted nn matrix as sparse matrix
         # return nn matrix
-        nn_list = Mapping.cor_nn(from_dataset, to_dataset, k=k)
-        nn_idx = nn_list['nn_idx']
-        nn_dists_exp = np.exp(nn_list['nn_dists'] / -c)
+        if option == 1:
+            nn_list = Mapping.cor_nn(from_dataset, to_dataset, k=k)
+            nn_idx = nn_list['nn_idx']
+            nn_dists = nn_list['nn_dists']
+        else:
+            nn = NearestNeighbors(n_neighbors=k, algorithm='brute', metric="correlation")
+            nn.fit(from_dataset)
+            nn_dists, nn_idx = nn.kneighbors(to_dataset)
+            nn_dists = pd.DataFrame(nn_dists, index=self.stvea.codex_protein_corrected.index)
+            nn_idx = pd.DataFrame(nn_idx, index=self.stvea.codex_protein_corrected.index)
+
+        nn_dists_exp = np.exp(nn_dists / -c)
 
         # some CODEX cells may not have near neighbors
         # only cells below this threshold will be kept
         if mask:
-            self.stvea.codex_mask = nn_list["nn_dists"].mean(axis=1) < mask_threshold
+            self.stvea.codex_mask = nn_dists.mean(axis=1) < mask_threshold
             self.stvea.codex_mask.index = self.stvea.codex_protein.index
 
         # row-normalize the distance matrix
@@ -702,9 +713,9 @@ class Mapping:
         transfer_matrix = coo_matrix((data, (rows, cols)), shape=shape)
 
         # convert to DataFrame
-        self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
-        self.stvea.transfer_matrix.index = to_dataset.index
-        self.stvea.transfer_matrix.columns = from_dataset.index
+        # self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
+        # self.stvea.transfer_matrix.index = to_dataset.index
+        # self.stvea.transfer_matrix.columns = from_dataset.index
 
         end = time.time()
         print(f"transfer_matrix Time: {round(end - start, 3)} sec")
