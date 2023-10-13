@@ -56,9 +56,9 @@ class TestController(TestCase):
         cn = Controller.Controller()
         amount_codex = -1
         amount_cite = -1
-        for round in range(3):
+        for round in range(1):
             print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~round: {round + 1}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            cell_numbers = ((1000, 1000), )
+            cell_numbers = ((1000, 1000), (2000, 2000), (3000, 3000), (4000, 4000), (5000, 5000), (6000, 6000), (7000, 7000), (8000, 8000))
             for cell_numbers in cell_numbers:
                 amount_codex, amount_cite = cell_numbers
                 print(f"------------------amount_codex: {amount_codex} amount_cite: {amount_cite}--------------------")
@@ -76,7 +76,7 @@ class TestController(TestCase):
                 # take a certain number of cells
                 cn.data_processor.take_subset(amount_codex=amount_codex,
                                               amount_cite=amount_cite)
-                tracemalloc.start()
+
                 # map the CODEX cells to CITE-seq cells.
                 cn.mapping.map_codex_to_cite(k_find_nn=80,
                                              k_find_anchor=20,
@@ -84,11 +84,15 @@ class TestController(TestCase):
                                              k_score_anchor=80,
                                              k_find_weights=100)
 
+
+                tracemalloc.start()
+
                 # create transfer matrix to transfer values from CITE-seq to CODEX
                 cn.mapping.transfer_matrix(k=None,
                                            c=0.1,
                                            mask_threshold=0.5,
                                            mask=False)
+
                 snapshot = tracemalloc.take_snapshot()
                 top_stats = snapshot.statistics('lineno')
 
