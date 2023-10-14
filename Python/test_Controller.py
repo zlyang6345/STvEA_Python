@@ -14,7 +14,7 @@ class TestController(TestCase):
         cn = Controller.Controller()
         amount_codex = -1
         amount_cite = -1
-        cell_numbers = ((1000, 1000), (2000, 2000), (3000, 3000), (4000, 4000),
+        cell_numbers = ((7000, 7000), (2000, 2000), (3000, 3000), (4000, 4000),
                         (5000, 5000), (6000, 6000), (7000, 7000), (8000, 8000))
         for cell_numbers in cell_numbers:
                 amount_codex, amount_cite = cell_numbers
@@ -39,23 +39,23 @@ class TestController(TestCase):
                                              k_score_anchor=80,
                                              k_find_weights=100)
                 t = []
-                for round in range(3):
+                for round in range(1):
                     # create transfer matrix to transfer values from CITE-seq to CODEX
-                    start = time.time()
-                    # tracemalloc.start()
+                    # start = time.time()
+                    tracemalloc.start()
                     cn.mapping.transfer_matrix(k=None,
                                                c=0.1,
                                                mask_threshold=0.5,
                                                mask=False,
-                                               option=1)
-                    end = time.time()
-                    t.append(end - start)
-                    #snapshot = tracemalloc.take_snapshot()
-                    #top_stats = snapshot.statistics('lineno')
+                                               option=2)
+                    # end = time.time()
+                    # t.append(end - start)
+                    snapshot = tracemalloc.take_snapshot()
+                    top_stats = snapshot.statistics('lineno')
 
-                    #print("[ Top 10 ]")
-                    #for stat in top_stats[:10]:
-                    #    print(stat)
+                    # print("[ Top 10 ]")
+                    for stat in top_stats[:10]:
+                      print(stat)
                 print(f"cell numbers:  {cell_numbers[0]} time: {t}")
 
 

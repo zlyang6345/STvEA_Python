@@ -119,7 +119,7 @@ class Mapping:
         return anchors
 
     @staticmethod
-    def find_nn_rna(ref_emb, query_emb, rna_mat, cite_index=1, k=300, eps=0):
+    def find_nn_rna(ref_emb, query_emb, rna_mat, cite_index=1, k=300, eps=0, nn_option=2):
         """
         This function will find the nearest neighbors between reference-reference, query-query,
         reference-query, and query-reference.
@@ -133,10 +133,22 @@ class Mapping:
                 'cellsr': ref_emb.index.values, 'cellsq': query_emb.index.values}
                 nn_rr and nn_qq are also dictionary that contain "nn_idx" and "nn_dists"
         """
+        nn_rr = dict()
+        nn_qq = dict()
         start = time.time()
         if cite_index == 1:
-            # use Pearson Correlation distance to find NN in mRNA dataset.
-            nn_rr = Mapping.cor_nn(data=rna_mat, k=k + 1)
+            if nn_option == 1:
+                # use Pearson Correlation distance to find NN in mRNA dataset.
+                nn_rr = Mapping.cor_nn(data=rna_mat, k=k + 1)
+            else:
+                nn = NearestNeighbors(n_neighbors=k + 1, algorithm='brute', metric="correlation")
+                nn.fit(rna_mat)
+                nn_dists, nn_idx = nn.kneighbors(rna_mat)
+                nn_dists = pd.DataFrame(nn_dists, index=rna_mat.index)
+                nn_idx = pd.DataFrame(nn_idx, index=rna_mat.index)
+                nn_rr["nn_idx"] = nn_idx
+                nn_rr["nn_dists"] = nn_dists
+
             # use KDTree to find the nearest neighbors among query-query.
             nn_qq_result = KDTree(query_emb).query(query_emb, k=k+1, eps=eps)
             nn_qq = {"nn_idx": pd.DataFrame(nn_qq_result[1]),
@@ -147,7 +159,16 @@ class Mapping:
             nn_rr = {"nn_idx": pd.DataFrame(nn_rr_result[1]),
                      "nn_dists": pd.DataFrame(nn_rr_result[0])}
             # use Pearson Correlation distance to find NN in mRNA dataset.
-            nn_qq = Mapping.cor_nn(data=rna_mat, k=k + 1)
+            if nn_option == 1:
+                nn_qq = Mapping.cor_nn(data=rna_mat, k=k + 1)
+            else:
+                nn = NearestNeighbors(n_neighbors=k + 1, algorithm='brute', metric="correlation")
+                nn.fit(rna_mat)
+                nn_dists, nn_idx = nn.kneighbors(rna_mat)
+                nn_dists = pd.DataFrame(nn_dists, index=rna_mat.index)
+                nn_idx = pd.DataFrame(nn_idx, index=rna_mat.index)
+                nn_qq["nn_idx"] = nn_idx
+                nn_qq["nn_dists"] = nn_dists
 
         # find the nearest neighbors among query-reference.
         nn_rq_result = KDTree(query_emb).query(ref_emb, k=k, eps=eps)
@@ -355,7 +376,7 @@ class Mapping:
         return {'nn_idx': neighbors.astype("uint32"), 'nn_dists': distances}
 
     @staticmethod
-    def filter_anchors(ref_mat, query_mat, anchors, k_filter=200):
+    def filter_anchors(ref_mat, query_mat, anchors, k_filter=200, nn_option=2):
         """
         This function will keep anchors that preserve original data info.
         This means that the anchor in CCA space should also be anchors in the original dataset.
@@ -366,15 +387,27 @@ class Mapping:
         @return: a dataframe of filtered anchors.
         """
         start = time.time()
-        nn1 = Mapping.cor_nn(data=query_mat, query=ref_mat, k=k_filter)
-        nn2 = Mapping.cor_nn(data=ref_mat, query=query_mat, k=k_filter)
+        nn1_idx = pd.DataFrame();
+        nn2_idx = pd.DataFrame();
+        if nn_option == 1:
+            nn1 = Mapping.cor_nn(data=query_mat, query=ref_mat, k=k_filter)
+            nn2 = Mapping.cor_nn(data=ref_mat, query=query_mat, k=k_filter)
+            nn1_idx = nn1['nn_idx']
+            nn2_idx = nn2['nn_idx']
+        else:
+            nn = NearestNeighbors(n_neighbors=k_filter, algorithm='brute', metric="correlation")
+            nn.fit(query_mat)
+            nn1_idx = nn.kneighbors(ref_mat)[1]
+            nn = NearestNeighbors(n_neighbors=k_filter, algorithm='brute', metric="correlation")
+            nn.fit(ref_mat)
+            nn2_idx = nn.kneighbors(query_mat)[1]
 
         position1 = [False] * len(anchors)
         position2 = [False] * len(anchors)
         i = 0
         for q, r in zip(anchors['cellq'], anchors['cellr']):
-            position1[i] = nn1['nn_idx'].iloc[r, :].isin([q]).any()
-            position2[i] = nn2['nn_idx'].iloc[q, :].isin([r]).any()
+            position1[i] = nn1_idx.iloc[r, :].isin([q]).any()
+            position2[i] = nn2_idx.iloc[q, :].isin([r]).any()
             i += 1
 
         anchors = anchors[np.logical_or(position1, position2)]
@@ -514,11 +547,11 @@ class Mapping:
         return integration_matrix
 
     @staticmethod
-    def find_weights(neighbors, anchors, query_mat, k_weight=300, sd_weight=1):
+    def find_weights(neighbors, anchors, query_mat, k_weight=300, sd_weight=1, nn_option=2):
         """
         This function will find weights for anchors.
         This weight is based on the distance of query cell and anchor distance.
-        @param neighbors: a dictionary generated in previous step.
+        @param neighbors: a dictionary generated in a previous step.
         @param anchors: a dataframe that includes three columns (cellq, cellr, and score).
         @param query_mat: a dataframe whose row represents query cell and whose column represents protein.
         @param k_weight: the number of nearest anchors to use in correction.
@@ -531,14 +564,24 @@ class Mapping:
         cellsr = neighbors["cellsr"]
         cellsq = neighbors["cellsq"]
         anchor_cellsq = anchors["cellq"]
+        data = query_mat.iloc[anchor_cellsq, :]
 
-        # find nearest anchors to each query cell
-        kna_query = Mapping.cor_nn(data=query_mat.iloc[anchor_cellsq, :], query=query_mat, k=k_weight)
+        nn_dists = pd.DataFrame();
+        nn_idx = pd.DataFrame();
+        if nn_option == 1:
+            # find the nearest anchors to each query cell
+            kna_query = Mapping.cor_nn(data=data, query=query_mat, k=k_weight)
+            nn_dists = kna_query["nn_dists"]
+            nn_dists.index = cellsq
+            nn_idx = kna_query["nn_idx"]
+            nn_idx.index = cellsq
+        else:
+            nn = NearestNeighbors(n_neighbors=k_weight, algorithm='brute', metric="correlation")
+            nn.fit(query_mat.iloc[anchor_cellsq, :])
+            nn_dists, nn_idx = nn.kneighbors(query_mat)
+            nn_dists = pd.DataFrame(nn_dists, index = cellsq)
+            nn_idx = pd.DataFrame(nn_idx, index=cellsq)
 
-        nn_dists = kna_query["nn_dists"]
-        nn_dists.index = cellsq
-        nn_idx = kna_query["nn_idx"]
-        nn_idx.index = cellsq
 
         # divide each entry by that cell's kth nearest neighbor's distance.
         nn_dists = 1 - nn_dists.div(nn_dists.iloc[:, k_weight - 1], axis=0)
@@ -690,7 +733,7 @@ class Mapping:
 
         nn_dists_exp = np.exp(nn_dists / -c)
 
-        # some CODEX cells may not have near neighbors
+        # some CODEX cells may not have near neighbors,
         # only cells below this threshold will be kept
         if mask:
             self.stvea.codex_mask = nn_dists.mean(axis=1) < mask_threshold
