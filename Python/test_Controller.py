@@ -64,7 +64,7 @@ class TestController(TestCase):
         cn = Controller.Controller()
         amount_codex = -1
         amount_cite = -1
-        for round in range(1):
+        for round in range(2):
           print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~round: {round + 1}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
           cell_numbers = ((1000, 1000), (2000, 2000),(3000, 3000), (4000, 4000),
                           (5000, 5000), (6000, 6000), (7000, 7000), (8000, 8000))

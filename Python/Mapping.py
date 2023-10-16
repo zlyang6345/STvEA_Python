@@ -398,9 +398,11 @@ class Mapping:
             nn = NearestNeighbors(n_neighbors=k_filter, algorithm='brute', metric="correlation")
             nn.fit(query_mat)
             nn1_idx = nn.kneighbors(ref_mat)[1]
+            nn1_idx = pd.DataFrame(nn1_idx, index=ref_mat.index)
             nn = NearestNeighbors(n_neighbors=k_filter, algorithm='brute', metric="correlation")
             nn.fit(ref_mat)
             nn2_idx = nn.kneighbors(query_mat)[1]
+            nn2_idx = pd.DataFrame(nn2_idx, index=query_mat.index)
 
         position1 = [False] * len(anchors)
         position2 = [False] * len(anchors)
@@ -698,7 +700,7 @@ class Mapping:
                         c=0.1,
                         mask_threshold=0.5,
                         mask=True,
-                        option=1):
+                        option=2):
         """
         This function builds a transfer matrix.
         @param k: number of the nearest neighbors to find.
