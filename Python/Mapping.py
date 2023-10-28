@@ -647,7 +647,8 @@ class Mapping:
                           k_find_anchor=20,
                           k_filter_anchor=100,
                           k_score_anchor=80,
-                          k_find_weights=100):
+                          k_find_weights=100,
+                          nn_option=2):
         """
         This function will calibrate CODEX protein expression levels to CITE-seq protein expression levels.
         Wrap up all functions in this class.
@@ -677,18 +678,19 @@ class Mapping:
         neighbors = Mapping.find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
                                         query_emb=cca_data.iloc[cite_count:, :],
                                         rna_mat=self.stvea.cite_latent,
-                                        k=k_find_nn)
+                                        k=k_find_nn,
+                                        nn_option=nn_option)
 
         anchors = Mapping.find_anchor_pairs(neighbors, k_find_anchor)
 
-        anchors = Mapping.filter_anchors(cite_subset, codex_subset, anchors, k_filter_anchor)
+        anchors = Mapping.filter_anchors(cite_subset, codex_subset, anchors, k_filter_anchor, nn_option=nn_option)
 
         anchors = Mapping.score_anchors(neighbors, anchors, len(neighbors["nn_rr"]["nn_idx"]),
                                         len(neighbors["nn_qq"]["nn_idx"]), k_score_anchor)
 
         integration_matrix = Mapping.find_integration_matrix(cite_subset, codex_subset, neighbors, anchors)
 
-        weights = Mapping.find_weights(neighbors, anchors, codex_subset, k_find_weights)
+        weights = Mapping.find_weights(neighbors, anchors, codex_subset, k_find_weights, nn_option=nn_option)
 
         Mapping.transform_data_matrix(codex_subset, integration_matrix, weights, self.stvea)
 
@@ -700,7 +702,7 @@ class Mapping:
                         c=0.1,
                         mask_threshold=0.5,
                         mask=True,
-                        option=2):
+                        nn_option=2):
         """
         This function builds a transfer matrix.
         @param k: number of the nearest neighbors to find.
@@ -722,7 +724,7 @@ class Mapping:
         # weight each nn based on gaussian kernel of distance
         # create weighted nn matrix as sparse matrix
         # return nn matrix
-        if option == 1:
+        if nn_option == 1:
             nn_list = Mapping.cor_nn(from_dataset, to_dataset, k=k)
             nn_idx = nn_list['nn_idx']
             nn_dists = nn_list['nn_dists']

@@ -5,7 +5,7 @@ import STvEA
 import pandas as pd
 import Annotation
 from copy import deepcopy
-import tracemalloc
+import resource
 
 
 class TestController(TestCase):
@@ -14,7 +14,7 @@ class TestController(TestCase):
         cn = Controller.Controller()
         amount_codex = -1
         amount_cite = -1
-        cell_numbers = ((7000, 7000), (2000, 2000), (3000, 3000), (4000, 4000),
+        cell_numbers = ((1000, 1000), (2000, 2000), (3000, 3000), (4000, 4000),
                         (5000, 5000), (6000, 6000), (7000, 7000), (8000, 8000))
         for cell_numbers in cell_numbers:
                 amount_codex, amount_cite = cell_numbers
@@ -66,8 +66,7 @@ class TestController(TestCase):
         amount_cite = -1
         for round in range(2):
           print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~round: {round + 1}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-          cell_numbers = ((1000, 1000), (2000, 2000),(3000, 3000), (4000, 4000),
-                          (5000, 5000), (6000, 6000), (7000, 7000), (8000, 8000))
+          cell_numbers = ((8000, 8000), )
           for cell_numbers in cell_numbers:
               amount_codex, amount_cite = cell_numbers
               print(f"------------------amount_codex: {amount_codex} amount_cite: {amount_cite}--------------------")
@@ -89,13 +88,14 @@ class TestController(TestCase):
                                            k_find_anchor=20,
                                            k_filter_anchor=100,
                                            k_score_anchor=80,
-                                           k_find_weights=100)
+                                           k_find_weights=100,
+                                           nn_option=2)
               # create transfer matrix to transfer values from CITE-seq to CODEX
               cn.mapping.transfer_matrix(k=None,
                                          c=0.1,
                                          mask_threshold=0.5,
                                          mask=False,
-                                         option=2)
+                                         nn_option=2)
               print("---------------------------------------------------------------------------------------\n\n")
 
     def test_space_scalability(self):
@@ -104,7 +104,8 @@ class TestController(TestCase):
         amount_cite = -1
         for round in range(1):
             print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~round: {round + 1}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            cell_numbers = ((1000, 1000), )
+            cell_numbers = ((1000, 1000), (2000, 2000),(3000, 3000), (4000, 4000),
+                          (5000, 5000), (6000, 6000), (7000, 7000), (8000, 8000))
             for cell_numbers in cell_numbers:
                 amount_codex, amount_cite = cell_numbers
                 print(f"------------------amount_codex: {amount_codex} amount_cite: {amount_cite}--------------------")
@@ -130,8 +131,8 @@ class TestController(TestCase):
                                              k_score_anchor=80,
                                              k_find_weights=100)
 
-
-                tracemalloc.start()
+                memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                print(f"Memory usage: {memory_usage / (1024 * 1024)} MB")
 
                 # create transfer matrix to transfer values from CITE-seq to CODEX
                 cn.mapping.transfer_matrix(k=None,
@@ -140,12 +141,8 @@ class TestController(TestCase):
                                            mask=False,
                                            option=2)
 
-                snapshot = tracemalloc.take_snapshot()
-                top_stats = snapshot.statistics('lineno')
-
-                print("[ Top 10 ]")
-                for stat in top_stats[:10]:
-                    print(stat)
+                memory_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                print(f"Memory usage: {memory_usage / (1024 * 1024)} MB")
 
                 print("---------------------------------------------------------------------------------------\n\n")
 
