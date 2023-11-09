@@ -169,7 +169,7 @@ class Cluster:
             return
 
         if option == 5:
-            data = self.stvea.codex_protein_corrected
+            data = self.stvea.codex_protein
             reducer = umap.UMAP(n_components=data.shape[1],
                                 n_neighbors=15,
                                 min_dist=0.1,
