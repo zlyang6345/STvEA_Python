@@ -159,11 +159,11 @@ class Controller:
 
         # clean CODEX cells and CITE-seq cells
         self.data_processor.clean_codex()
-        self.data_processor.clean_cite(maxit=maxit,
-                                       factr=factr,
-                                       optim_init=optim_init,
-                                       ignore_warnings=ignore_warnings,
-                                       method=clean_cite_method)
+        # self.data_processor.clean_cite(maxit=maxit,
+        #                                factr=factr,
+        #                                optim_init=optim_init,
+        #                                ignore_warnings=ignore_warnings,
+        #                                method=clean_cite_method)
 
         # map the CODEX cells to CITE-seq cells.
         self.mapping.map_codex_to_cite(k_find_nn=k_find_nn,
@@ -186,7 +186,7 @@ class Controller:
                                    option=cluster_codex_option,
                                    threshold=cluster_codex_threshold,
                                    markers=markers,
-                                   plot_umap=True)
+                                   plot_umap=False)
 
         # cluster CITE cells
         self.cluster.cluster_cite(option=cluster_cite_option,
@@ -213,4 +213,4 @@ class Controller:
                                   hdbscan_cluster_metric=hdbscan_cluster_metric,
                                   hdbscan_random_state=hdbscan_random_state,
                                   # plot
-                                  plot_umap=True)
+                                  plot_umap=False)

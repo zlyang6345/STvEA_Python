@@ -251,12 +251,12 @@ class TestController(TestCase):
             codex_preprocess=True,
             codex_border=564000,
             # read_cite args
-            cite_latent="../Data/raw_dataset/cite_latent.csv",
-            cite_protein="../Data/raw_dataset/cite_protein.csv",
-            cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
+            cite_latent="../Data/immunopheno/murine_spleen_protein_normalized.csv",
+            cite_protein="../Data/immunopheno/murine_spleen_protein_normalized.csv",
+            cite_mrna="../Data/immunopheno/murine_spleen_rna.csv",
             # take_subset args
-            amount_codex=1000,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=1000,  # -1 ≈ 7000 cells
+            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=-1,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),
@@ -273,9 +273,9 @@ class TestController(TestCase):
             clean_cite_method="l-bfgs-b",
             # cluster_codex args
             cluster_codex_k=4,
-            cluster_codex_knn_option=1,
+            cluster_codex_option=5,
             # parameter_scan args
-            cluster_cite_option=2,
+            cluster_cite_option=3,
             parameter_scan_min_cluster_size_range=tuple(range(2, 3, 1)),
             parameter_scan_min_sample_range=tuple(range(14, 15, 1)),
             parameter_scan_n_neighbors=40,
@@ -289,7 +289,7 @@ class TestController(TestCase):
             consensus_cluster_min_cluster_size=8,
             silhouette_cutoff_percentile=95,
             # cite hdbscan
-            hdbscan_min_cluster_size_range=2,
+            hdbscan_min_cluster_size_range=5,
             hdbscan_min_sample_range=14,
             hdbscan_n_neighbors=50,
             hdbscan_min_dist=0.1,
