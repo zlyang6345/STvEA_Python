@@ -1,15 +1,1 @@
-T cells: 1
-B2 cells: 2, 16, 20, 23
-NK cells: 3
-Monocytes: 4
-B1 cells: 5
-T1 B cells: 6, 8
-Plasma cells: 10
-CD4: 9
-Erythroblasts: 10
-Neutrophils: 11, 12
-Erythrocytes: 13
-CD8: 14, 17
-Macrophages: 15, 19
-pDCs: 18
-Langerhans: 22
+Erythroblasts:

@@ -41,7 +41,7 @@ class Cluster:
                       plot=False,
                       threshold=(0.01, 0.001, (0.01, 0.1), 0.01),
                       markers = ("B220", "Ly6G", ("NKp46", "CD45"), "TCR"),
-                      plot_umap=True):
+                      plot_umap=False):
         """
         This function will cluster codex cells.
 
@@ -179,8 +179,8 @@ class Cluster:
 
             umap_latent = reducer.fit_transform(data)
 
-            cluster = hdbscan.HDBSCAN(min_cluster_size=3,
-                                      min_samples=10,
+            cluster = hdbscan.HDBSCAN(min_cluster_size=5,
+                                      min_samples=14,
                                       metric="correlation",
                                       memory='./HDBSCAN_cache')
 
@@ -538,7 +538,7 @@ class Cluster:
                      hdbscan_cluster_metric="correlation",
                      hdbscan_random_state=0,
                      # plot
-                     plot_umap = True
+                     plot_umap=False
                      ):
 
         if option == 1:
@@ -601,7 +601,7 @@ class Cluster:
 
             hdbscan_labels = cluster.fit_predict(umap_latent)
 
-            self.stvea.cite_cluster = pd.DataFrame(hdbscan_labels) + 1
+            self.stvea.cite_cluster = pd.DataFrame(hdbscan_labels)
 
         if plot_umap:
             self.plot_cite()

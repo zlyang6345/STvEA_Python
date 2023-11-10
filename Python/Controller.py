@@ -186,7 +186,7 @@ class Controller:
                                    option=cluster_codex_option,
                                    threshold=cluster_codex_threshold,
                                    markers=markers,
-                                   plot_umap=True)
+                                   plot_umap=False)
 
         # cluster CITE cells
         self.cluster.cluster_cite(option=cluster_cite_option,
@@ -213,4 +213,4 @@ class Controller:
                                   hdbscan_cluster_metric=hdbscan_cluster_metric,
                                   hdbscan_random_state=hdbscan_random_state,
                                   # plot
-                                  plot_umap=True)
+                                  plot_umap=False)
