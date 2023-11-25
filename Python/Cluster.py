@@ -169,7 +169,7 @@ class Cluster:
             return
 
         if option == 5:
-            data = self.stvea.codex_protein
+            data = self.stvea.codex_protein_corrected
             reducer = umap.UMAP(n_components=data.shape[1],
                                 n_neighbors=15,
                                 min_dist=0.1,
@@ -179,8 +179,8 @@ class Cluster:
 
             umap_latent = reducer.fit_transform(data)
 
-            cluster = hdbscan.HDBSCAN(min_cluster_size=5,
-                                      min_samples=14,
+            cluster = hdbscan.HDBSCAN(min_cluster_size=3,
+                                      min_samples=20,
                                       metric="correlation",
                                       memory='./HDBSCAN_cache')
 
@@ -582,13 +582,13 @@ class Cluster:
             self.stvea.codex_cluster = pd.DataFrame(self.stvea.hdbscan_scans[index]['cluster_labels'])
 
         elif option == 3:
-
+            print('HDBSCAN only')
             # hdbscan only
             data = self.stvea.cite_latent
             reducer = umap.UMAP(n_components=data.shape[1],
-                                n_neighbors=hdbscan_n_neighbors,
-                                min_dist=hdbscan_min_dist,
-                                negative_sample_rate=hdbscan_negative_sample_rate,
+                                n_neighbors=15,
+                                min_dist=0.1,
+                                negative_sample_rate=50,
                                 metric=hdbscan_cluster_metric,
                                 random_state=hdbscan_random_state)
 

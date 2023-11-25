@@ -52,8 +52,8 @@ class TestController(TestCase):
                 print(f"cell numbers:  {cell_numbers[0]} time: {t}")
 
 
-
     def test_runtime_scalability(self):
+
         cn = Controller.Controller()
         amount_codex = -1
         amount_cite = -1
@@ -228,12 +228,12 @@ class TestController(TestCase):
             "float64")
         TestController.partial_evaluation(stvea, an)
 
-    def test_overall_evaluation(self):
+    def test_overall_evaluation2(self):
         # initialize variable
         cn = Controller.Controller()
 
         # this pipeline will read files
-        cn.pipeline(
+        cn.pipeline2(
             # read_codex args
             codex_blanks="../Data/raw_dataset/codex_blanks.csv",
             codex_protein="../Data/raw_dataset/codex_protein.csv",
@@ -242,12 +242,12 @@ class TestController(TestCase):
             codex_preprocess=True,
             codex_border=564000,
             # read_cite args
-            cite_latent="../Data/immunopheno/murine_spleen_protein_normalized.csv",
-            cite_protein="../Data/immunopheno/murine_spleen_protein_normalized.csv",
+            cite_latent="../Data/raw_dataset/cite_latent.csv",
+            cite_protein="../Data/raw_dataset/cite_protein.csv",
             cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
             # take_subset args
-            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=-1,  # -1 ≈ 7000 cells
+            amount_codex=1000,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=1000,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),
@@ -286,6 +286,82 @@ class TestController(TestCase):
             hdbscan_min_dist=0.1,
             hdbscan_negative_sample_rate=50,
             hdbscan_cluster_metric="correlation",
+            hdbscan_random_state=0,
+            # map_codex_to_cite args
+            k_find_nn=80,
+            k_find_anchor=20,
+            k_filter_anchor=100,
+            k_score_anchor=80,
+            k_find_weights=100,
+            # transfer_matrix
+            k_transfer_matrix=None,
+            c_transfer_matrix=0.1,
+            mask=True
+        )
+
+        # invoke the partial evaluation
+        TestController.partial_evaluation(cn.stvea, cn.annotation, export=False)
+
+
+    def test_overall_evaluation(self):
+
+        # initialize variable
+        cn = Controller.Controller()
+
+        # this pipeline will read files
+        cn.pipeline(
+            # read_codex args
+            codex_blanks="../Data/raw_dataset/codex_blanks.csv",
+            codex_protein="../Data/raw_dataset/codex_protein.csv",
+            codex_size="../Data/raw_dataset/codex_size.csv",
+            codex_spatial="../Data/raw_dataset/codex_spatial.csv",
+            codex_preprocess=True,
+            codex_border=564000,
+            # read_cite args
+            cite_latent="../Data/raw_dataset/cite_latent.csv",
+            cite_protein="../Data/raw_dataset/cite_protein.csv",
+            cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
+            # take_subset args
+            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=-1,  # -1 ≈ 7000 cells
+            # filter_codex args
+            size_lim=(1000, 25000),
+            blank_lower=(-1200, -1200, -1200, -1200),
+            blank_upper=(6000, 2500, 5000, 2500),
+            # clean_cite args
+            maxit=500,
+            factr=1e-9,
+            optim_init=([10, 60, 2, 0.5, 0.5],
+                        [4.8, 50, 0.5, 2, 0.5],
+                        [2, 18, 0.5, 2, 0.5],
+                        [1, 3, 2, 2, 0.5],
+                        [1, 3, 0.5, 2, 0.5]),
+            ignore_warnings=True,
+            clean_cite_method="l-bfgs-b",
+            # cluster_codex args
+            cluster_codex_k=4,
+            cluster_codex_option=5,
+            # parameter_scan args
+            cluster_cite_option=3,
+            parameter_scan_min_cluster_size_range=tuple(range(2, 3, 1)),
+            parameter_scan_min_sample_range=tuple(range(14, 15, 1)),
+            parameter_scan_n_neighbors=40,
+            parameter_scan_min_dist=0.1,
+            parameter_scan_negative_sample_rate=50,
+            parameter_scan_metric="correlation",
+            silhoutte_metric="correlation",
+            # consensus_cluster args
+            consensus_cluster_silhouette_cutoff=None,
+            consensus_cluster_inconsistent_value=0.1,
+            consensus_cluster_min_cluster_size=8,
+            silhouette_cutoff_percentile=95,
+            # cite hdbscan
+            hdbscan_min_cluster_size_range=2,
+            hdbscan_min_sample_range=9,
+            hdbscan_n_neighbors=40,
+            hdbscan_min_dist=0.1,
+            hdbscan_negative_sample_rate=50,
+            hdbscan_cluster_metric="euclidean",
             hdbscan_random_state=0,
             # map_codex_to_cite args
             k_find_nn=80,

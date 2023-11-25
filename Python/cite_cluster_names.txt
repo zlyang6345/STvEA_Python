@@ -1,1 +1,4 @@
-Erythroblasts:
+T cells: 12
+Neutrophils: 2
+B2 cells: 19
+NK cells: 11

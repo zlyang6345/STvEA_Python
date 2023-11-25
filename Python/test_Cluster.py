@@ -78,14 +78,14 @@ class TestCluster(TestCase):
                              consensus_cluster_min_cluster_size=8,
                              # hdbscan
                              hdbscan_min_cluster_size_range=2,
-                             hdbscan_min_sample_range=14,
-                             hdbscan_n_neighbors=40,
+                             hdbscan_min_sample_range=9,
                              hdbscan_min_dist=0.1,
                              hdbscan_negative_sample_rate=50,
-                             hdbscan_cluster_metric='correlation',
+                             hdbscan_cluster_metric='euclidean',
                              hdbscan_random_state=0,
                              # plot
                              plot_umap=True)
+
         an.cluster_heatmap(1, option=1)
 
     def test_cluster_codex_complex(self):
@@ -164,27 +164,29 @@ class TestCluster(TestCase):
         data_processor = DataProcessor.DataProcessor(stvea)
         cl = Cluster.Cluster(stvea)
 
-        data_processor.read_codex()
-        data_processor.read_cite()
-        # data_processor.filter_codex()
+        data_processor.read_codex(codex_blanks='../Data/raw_dataset/codex_blanks.csv',
+                                  codex_size='../Data/raw_dataset/codex_size.csv',
+                                  codex_protein='../Data/raw_dataset/codex_protein.csv',
+                                  codex_spatial='../Data/raw_dataset/codex_spatial.csv')
+        data_processor.filter_codex()
         data_processor.clean_codex()
-        cl.cluster_codex(option=5)
+        cl.cluster_codex(option=5, plot_umap=True)
 
         # plot python
-        plot_df = pd.DataFrame({"x": stvea.codex_emb[0], "y": stvea.codex_emb[1],
-                                "Clusters": stvea.codex_cluster[0]})
-        plt.figure(figsize=(12, 12))
-        sns.scatterplot(data=plot_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
-        plt.title("Python CODEX Clusters 1")
-        plt.show()
+        # plot_df = pd.DataFrame({"x": stvea.codex_emb[0], "y": stvea.codex_emb[1],
+        #                         "Clusters": stvea.codex_cluster[0]})
+        # plt.figure(figsize=(12, 12))
+        # sns.scatterplot(data=plot_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
+        # plt.title("Python CODEX Clusters 1")
+        # plt.show()
 
         # plot R
-        r_codex_df = pd.read_csv("../Tests/r_codex_clusters.csv", index_col=0, header=0)
-        r_codex_df = r_codex_df.apply(pd.to_numeric)
-        plt.figure(figsize=(12, 12))
-        sns.scatterplot(data=r_codex_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
-        plt.title("R CODEX Clusters")
-        plt.show()
+        # r_codex_df = pd.read_csv("../Tests/r_codex_clusters.csv", index_col=0, header=0)
+        # r_codex_df = r_codex_df.apply(pd.to_numeric)
+        # plt.figure(figsize=(12, 12))
+        # sns.scatterplot(data=r_codex_df, x="x", y="y", hue="Clusters", palette="deep", s=60)
+        # plt.title("R CODEX Clusters")
+        # plt.show()
 
     def test_codex_umap(self):
         stvea = STvEA.STvEA()

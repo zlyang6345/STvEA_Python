@@ -760,9 +760,9 @@ class Mapping:
         transfer_matrix = coo_matrix((data, (rows, cols)), shape=shape)
 
         # convert to DataFrame
-        # self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
-        # self.stvea.transfer_matrix.index = to_dataset.index
-        # self.stvea.transfer_matrix.columns = from_dataset.index
+        self.stvea.transfer_matrix = pd.DataFrame(transfer_matrix.todense())
+        self.stvea.transfer_matrix.index = to_dataset.index
+        self.stvea.transfer_matrix.columns = from_dataset.index
 
         end = time.time()
         print(f"transfer_matrix Time: {round(end - start, 3)} sec")
