@@ -69,6 +69,20 @@ class Cluster:
             self.stvea.codex_knn = pd.DataFrame(umap_results[0])
             self.stvea.codex_knn = self.stvea.codex_knn.iloc[:, 1:]
 
+            # convert to pandas dataframe
+            codex_knn = pd.DataFrame(self.stvea.codex_knn)
+
+            # create an edge list
+            edge_list = []
+            codex_knn.apply(lambda row: Cluster.add_to_edge_list(edge_list, row, row.name), axis=1)
+
+            # perform louvain community detection ()
+            g = Graph(edges=edge_list)
+
+            # add one to make clusters 1-indexed
+            self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
+                                                    index=self.stvea.codex_protein_corrected.index) + 1
+
         if option == 2:
             # use parameter_scan and consensus cluster
             # the same approach to cluster CITE-seq cells
@@ -86,20 +100,6 @@ class Cluster:
                                    option=2)
 
             return
-
-        # convert to pandas dataframe
-        codex_knn = pd.DataFrame(self.stvea.codex_knn)
-
-        # create an edge list
-        edge_list = []
-        codex_knn.apply(lambda row: Cluster.add_to_edge_list(edge_list, row, row.name), axis=1)
-
-        # perform louvain community detection ()
-        g = Graph(edges=edge_list)
-
-        # add one to make clusters 1-indexed
-        self.stvea.codex_cluster = pd.DataFrame(g.community_multilevel().membership,
-                                                index=self.stvea.codex_protein_corrected.index) + 1
 
         if option == 3:
             # use HDBSCAN to filter out noise within each cluster
@@ -168,31 +168,11 @@ class Cluster:
                 self.stvea.codex_cluster.loc[marker_cells, :] = index + 1
             return
 
-        if option == 5:
-            data = self.stvea.codex_protein_corrected
-            reducer = umap.UMAP(n_components=data.shape[1],
-                                n_neighbors=15,
-                                min_dist=0.1,
-                                negative_sample_rate=50,
-                                metric="correlation",
-                                random_state=random_state)
-
-            umap_latent = reducer.fit_transform(data)
-
-            cluster = hdbscan.HDBSCAN(min_cluster_size=3,
-                                      min_samples=20,
-                                      metric="correlation",
-                                      memory='./HDBSCAN_cache')
-
-            hdbscan_labels = cluster.fit_predict(umap_latent)
-
-            self.stvea.codex_cluster = pd.DataFrame(hdbscan_labels)
 
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")
         if plot_umap:
             self.plot_codex(n_neighbors=30)
-
         return
 
 

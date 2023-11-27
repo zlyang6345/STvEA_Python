@@ -226,7 +226,7 @@ class DataProcessor:
                                                      scale=np.sqrt(gm.covariances_[signal, 0, 0]))
 
         end = time.time()
-        print("CODEX cleaned.", "Time:", round(end - start, 3), "sec")
+        print("CODEX cleaned.", "Time: ", round(end - start, 3), "sec")
 
     @staticmethod
     def sse(args, p_obs):
@@ -385,7 +385,9 @@ class DataProcessor:
         @param factr: accuracies of optim function.
         @param optim_init: a vector of with initialization.
         """
+
         start = time.time()
+
         if ignore_warnings:
             warnings.simplefilter("ignore")
 
@@ -397,7 +399,9 @@ class DataProcessor:
             lambda col: self.fit_nb(col, col.name, maxit=maxit, factr=factr, optim_init=optim_init, method=method))
 
         self.stvea.cite_protein = self.norm_cite(self.stvea.cite_protein, row_sums)
+
         end = time.time()
+
         print(f"CITE-seq protein cleaned, overall SSE: {str(self.overall_sse)} Time: {round(end - start, 3)} sec")
 
     @staticmethod
