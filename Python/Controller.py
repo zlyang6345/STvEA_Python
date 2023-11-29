@@ -192,7 +192,7 @@ class Controller:
                                    markers=markers,
                                    plot_umap=False)
 
-        self.stvea.cite_cluster = pd.read_csv("./cite_cluster.csv")
+        self.stvea.cite_cluster = pd.read_csv("../Data/immunopheno/cite_cluster_original.csv", index_col=0, header=0)
 
 
     def pipeline(self,
@@ -392,3 +392,4 @@ class Controller:
                                   hdbscan_random_state=hdbscan_random_state,
                                   # plot
                                   plot_umap=True)
+

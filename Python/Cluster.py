@@ -168,6 +168,25 @@ class Cluster:
                 self.stvea.codex_cluster.loc[marker_cells, :] = index + 1
             return
 
+        if option == 5:
+            data = self.stvea.codex_protein_corrected
+            reducer = umap.UMAP(n_components=data.shape[1],
+                                n_neighbors=15,
+                                min_dist=0.1,
+                                negative_sample_rate=50,
+                                metric="correlation",
+                                random_state=random_state)
+
+            umap_latent = reducer.fit_transform(data)
+
+            cluster = hdbscan.HDBSCAN(min_cluster_size=3,
+                                      min_samples=20,
+                                      metric="correlation",
+                                      memory='./HDBSCAN_cache')
+
+            hdbscan_labels = cluster.fit_predict(umap_latent)
+
+            self.stvea.codex_cluster = pd.DataFrame(hdbscan_labels)
 
         end = time.time()
         print(f"CODEX clusters found. Time: {round(end - start, 3)} sec")

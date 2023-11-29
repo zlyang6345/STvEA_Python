@@ -229,25 +229,26 @@ class TestController(TestCase):
         TestController.partial_evaluation(stvea, an)
 
     def test_overall_evaluation2(self):
+
         # initialize variable
         cn = Controller.Controller()
 
         # this pipeline will read files
         cn.pipeline2(
             # read_codex args
-            codex_blanks="../Data/raw_dataset/codex_blanks.csv",
-            codex_protein="../Data/raw_dataset/codex_protein.csv",
-            codex_size="../Data/raw_dataset/codex_size.csv",
-            codex_spatial="../Data/raw_dataset/codex_spatial.csv",
+            codex_blanks="../Data/immunopheno/codex_blanks.csv",
+            codex_protein="../Data/immunopheno/codex_protein_normalized_by_immunopheno.csv",
+            codex_size="../Data/immunopheno/codex_size.csv",
+            codex_spatial="../Data/immunopheno/codex_spatial.csv",
             codex_preprocess=True,
             codex_border=564000,
             # read_cite args
-            cite_latent="../Data/raw_dataset/cite_latent.csv",
-            cite_protein="../Data/raw_dataset/cite_protein.csv",
-            cite_mrna="../Data/raw_dataset/cite_mRNA.csv",
+            cite_latent="../Data/immunopheno/murine_spleen_protein_normalized.csv",
+            cite_protein="../Data/immunopheno/murine_spleen_protein_normalized.csv",
+            cite_mrna="../Data/immunopheno/murine_spleen_rna.csv",
             # take_subset args
-            amount_codex=1000,  # -1 = default ≈ 9000 CODEX cells
-            amount_cite=1000,  # -1 ≈ 7000 cells
+            amount_codex=-1,  # -1 = default ≈ 9000 CODEX cells
+            amount_cite=-1,  # -1 ≈ 7000 cells
             # filter_codex args
             size_lim=(1000, 25000),
             blank_lower=(-1200, -1200, -1200, -1200),
@@ -301,7 +302,6 @@ class TestController(TestCase):
 
         # invoke the partial evaluation
         TestController.partial_evaluation(cn.stvea, cn.annotation, export=False)
-
 
     def test_overall_evaluation(self):
 

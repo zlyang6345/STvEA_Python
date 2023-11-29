@@ -224,7 +224,7 @@ class Mapping:
     @staticmethod
     def cor_nn(data, query=None, k=5, option=1, npartition=3):
         """
-        This function can find nearest neighbors (rows) in "data" dataset for each record (row) in "query" dataset.
+        This function can find the nearest neighbors (rows) in "data" dataset for each record (row) in "query" dataset.
         @param data: a pandas dataframe.
         @param option: an integer to specify the computational method to find nearest neighbors.
         @param npartition: an integer to specify the number of partitions of query dataset.
@@ -387,8 +387,8 @@ class Mapping:
         @return: a dataframe of filtered anchors.
         """
         start = time.time()
-        nn1_idx = pd.DataFrame();
-        nn2_idx = pd.DataFrame();
+        nn1_idx = pd.DataFrame()
+        nn2_idx = pd.DataFrame()
         if nn_option == 1:
             nn1 = Mapping.cor_nn(data=query_mat, query=ref_mat, k=k_filter)
             nn2 = Mapping.cor_nn(data=ref_mat, query=query_mat, k=k_filter)
