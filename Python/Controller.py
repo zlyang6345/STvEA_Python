@@ -180,17 +180,14 @@ class Controller:
         self.mapping.transfer_matrix(k=k_transfer_matrix,
                                      c=c_transfer_matrix,
                                      mask_threshold=mask_threshold)
+        self.stvea.codex_mask = pd.read_csv('../Data/immunopheno/codex_mask.csv', header=0, index_col=0)
 
         # remove some CODEX cells that don't have near CITE-cells.
         if mask:
             self.data_processor.discard_codex(stvea=self.stvea)
 
         # cluster CODEX cells
-        self.cluster.cluster_codex(k=cluster_codex_k,
-                                   option=cluster_codex_option,
-                                   threshold=cluster_codex_threshold,
-                                   markers=markers,
-                                   plot_umap=False)
+        self.stvea.codex_cluster = pd.read_csv('../Data/immunopheno/codex_cluster.csv', index_col=0, header=0)
 
         self.stvea.cite_cluster = pd.read_csv("../Data/immunopheno/cite_cluster_original.csv", index_col=0, header=0)
 

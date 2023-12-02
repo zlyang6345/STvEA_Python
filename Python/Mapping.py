@@ -446,6 +446,15 @@ class Mapping:
 
         s_j1j2 = |N_CITEseq_j1 ∩ N_CITEseq_j2| + |N_CODEX_j1 ∩ N_CODEX_j2|
 
+            |   CITE    |   CODEX
+        -----------------------------
+         CI |           |
+         TE |           |
+        ----|-----------|-----------
+         CO |           |
+         DEX|           |
+            |           |
+
         N_CITEseq_j1 is the set of nearest CITEseq cells to cell j1 in the mRNA latent space.
         N_CITEseq_j2 is the set of nearest CITEseq cells to cell j2 in the CCA space
         N_CODEX_j1 is the set of nearest CODEX cells to j1 in the CCA space.
