@@ -750,7 +750,7 @@ class Mapping:
         # only cells below this threshold will be kept
         if mask:
             self.stvea.codex_mask = nn_dists.mean(axis=1) < mask_threshold
-            self.stvea.codex_mask.index = self.stvea.codex_protein.index
+            self.stvea.codex_mask.index = self.stvea.codex_protein_corrected.index
 
         # row-normalize the distance matrix
         nn_weights = nn_dists_exp.apply(lambda row: row / sum(row), axis=1)
@@ -765,7 +765,7 @@ class Mapping:
         data = weights_array.flatten()
 
         # create a sparse matrix
-        shape = (self.stvea.codex_protein.shape[0], self.stvea.cite_protein.shape[0])
+        shape = (self.stvea.codex_protein_corrected.shape[0], self.stvea.cite_protein.shape[0])
         transfer_matrix = coo_matrix((data, (rows, cols)), shape=shape)
 
         # convert to DataFrame

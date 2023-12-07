@@ -100,10 +100,10 @@ class Annotation:
             # make it difficult to plot heatplot
             df_grouped = df_grouped.clip(upper=upper_limit)
 
-        if -1 in df_grouped.index:
-            # -1 means no cluster assignment
-            # drop -1
-            df_grouped.drop(-1, inplace=True)
+        # if -1 in df_grouped.index:
+        #     # -1 means no cluster assignment
+        #     # drop -1
+        #     df_grouped.drop(-1, inplace=True)
 
         # transpose
         df_grouped = df_grouped.transpose()

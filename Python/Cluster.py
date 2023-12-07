@@ -181,7 +181,7 @@ class Cluster:
 
             cluster = hdbscan.HDBSCAN(min_cluster_size=3,
                                       min_samples=20,
-                                      metric="correlation",
+                                      metric="euclidean",
                                       memory='./HDBSCAN_cache')
 
             hdbscan_labels = cluster.fit_predict(umap_latent)

@@ -237,7 +237,7 @@ class TestController(TestCase):
         cn.pipeline2(
             # read_codex args
             codex_blanks="../Data/immunopheno/codex_blanks.csv",
-            codex_protein="../Data/immunopheno/codex_protein_normalized_by_immunopheno.csv",
+            codex_protein="../Data/immunopheno/codex_protein_normalized.csv",
             codex_size="../Data/immunopheno/codex_size.csv",
             codex_spatial="../Data/immunopheno/codex_spatial.csv",
             codex_preprocess=True,

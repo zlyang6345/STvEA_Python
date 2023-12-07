@@ -162,7 +162,7 @@ class Controller:
                                          blank_upper=blank_upper)
 
         # clean CODEX cells and CITE-seq cells
-        self.data_processor.clean_codex()
+        # self.data_processor.clean_codex()
         # self.data_processor.clean_cite(maxit=maxit,
         #                                factr=factr,
         #                                optim_init=optim_init,
@@ -176,20 +176,33 @@ class Controller:
                                        k_score_anchor=k_score_anchor,
                                        k_find_weights=k_find_weights)
 
+        non_na_row = ~ self.stvea.codex_protein_corrected.isna().any(axis=1)
+        self.stvea.codex_protein_corrected = self.stvea.codex_protein_corrected.loc[non_na_row]
+        self.stvea.codex_protein = self.stvea.codex_protein.loc[non_na_row]
+        self.stvea.codex_size = self.stvea.codex_size.loc[non_na_row]
+        self.stvea.codex_spatial = self.stvea.codex_spatial.loc[non_na_row]
+        self.stvea.codex_blanks = self.stvea.codex_blanks.loc[non_na_row]
+
         # create transfer matrix to transfer values from CITE-seq to CODEX
         self.mapping.transfer_matrix(k=k_transfer_matrix,
                                      c=c_transfer_matrix,
                                      mask_threshold=mask_threshold)
-        self.stvea.codex_mask = pd.read_csv('../Data/immunopheno/codex_mask.csv', header=0, index_col=0)
+
+        # self.stvea.codex_mask = pd.read_csv('../Data/immunopheno/codex_mask.csv', header=0, index_col=0)
 
         # remove some CODEX cells that don't have near CITE-cells.
         if mask:
             self.data_processor.discard_codex(stvea=self.stvea)
 
         # cluster CODEX cells
-        self.stvea.codex_cluster = pd.read_csv('../Data/immunopheno/codex_cluster.csv', index_col=0, header=0)
+        self.cluster.cluster_codex(k=cluster_codex_k,
+                                   option=cluster_codex_option,
+                                   threshold=cluster_codex_threshold,
+                                   markers=markers,
+                                   plot_umap=True)
 
-        self.stvea.cite_cluster = pd.read_csv("../Data/immunopheno/cite_cluster_original.csv", index_col=0, header=0)
+        self.stvea.cite_cluster = pd.read_csv("../Data/immunopheno/cite_cluster_labels.csv", index_col=0, header=0)
+
 
 
     def pipeline(self,
