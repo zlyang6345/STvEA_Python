@@ -558,7 +558,7 @@ class Mapping:
         return integration_matrix
 
     @staticmethod
-    def find_weights(neighbors, anchors, query_mat, k_weight=300, sd_weight=1, nn_option=2):
+    def find_weights(neighbors, anchors, query_mat, k_weight=300, sd_weight=1, nn_option=2, delta=0.00001):
         """
         This function will find weights for anchors.
         This weight is based on the distance of query cell and anchor distance.
@@ -567,6 +567,7 @@ class Mapping:
         @param query_mat: a dataframe whose row represents query cell and whose column represents protein.
         @param k_weight: the number of nearest anchors to use in correction.
         @param sd_weight: standard deviation of the Gaussian kernel.
+        @param delta: in some extreme cases, the last k_weight's entry will be zero. Add delta to avoid zero division.
         @return: a dataframe whose row represents query cell and column represents anchors.
         """
         start = time.time()
@@ -590,11 +591,14 @@ class Mapping:
             nn = NearestNeighbors(n_neighbors=k_weight, algorithm='brute', metric="correlation")
             nn.fit(query_mat.iloc[anchor_cellsq, :])
             nn_dists, nn_idx = nn.kneighbors(query_mat)
-            nn_dists = pd.DataFrame(nn_dists, index = cellsq)
+            nn_dists = pd.DataFrame(nn_dists, index=cellsq)
             nn_idx = pd.DataFrame(nn_idx, index=cellsq)
 
-
+        # add delta to avoid zero division.
+        zeros = nn_dists.iloc[:, k_weight-1] == 0
+        nn_dists.loc[zeros, k_weight-1] = nn_dists.loc[zeros, k_weight-1] + delta
         # divide each entry by that cell's kth nearest neighbor's distance.
+        # convert distance to weight
         nn_dists = 1 - nn_dists.div(nn_dists.iloc[:, k_weight - 1], axis=0)
 
         # initialize a dataframe.
