@@ -21,6 +21,64 @@ class Controller:
         self.mapping = Mapping.Mapping(self.stvea)
         self.annotation = Annotation.Annotation(self.stvea)
 
+    def interface(self,
+                 # read_codex args
+                 codex_protein,
+                 # read_cite args
+                 cite_protein,
+                 cite_cluster,
+                 # map_codex_to_cite args
+                 k_find_nn=80,
+                 k_find_anchor=20,
+                 k_filter_anchor=100,
+                 k_score_anchor=80,
+                 k_find_weights=100,
+                 # transfer_matrix
+                 k_transfer_matrix=None,
+                 c_transfer_matrix=0.1,
+                 mask_threshold=0.5,
+                 mask=True
+                 ):
+        """
+        This function interface STvEA with database.
+        The output of this function is stored in stvea.codex_cluster_names_transferred.
+
+        @param codex_protein: a string to specify the address of CODEX protein dataset.
+        @param cite_protein: a string to specify the address of CITE-seq protein dataset.
+        @param k_find_nn: the number of nearest neighbors.
+        @param k_find_anchor: The number of neighbors to find anchors.
+            Fewer k_anchor should mean higher quality of anchors.
+        @param k_filter_anchor: the number of nearest neighbors to find in the original data space.
+        @param k_score_anchor: the number of nearest neighbors to use in shared nearest neighbor scoring.
+        @param k_find_weights: the number of nearest anchors to use in correction.
+        @param k_transfer_matrix: the number of nearest anchors to use in correction.
+        @param c_transfer_matrix: a constant that controls the width of the Gaussian kernel.
+        @param mask: a boolean value to specify whether to discard CODEX cells that don't have near CITE-seq cells.
+        """
+        # read and clean data
+        self.stvea.codex_protein = codex_protein
+        self.stvea.cite_protein = cite_protein
+        self.stvea.cite_cluster = cite_cluster
+
+        # map the CODEX cells to CITE-seq cells.
+        self.mapping.map_codex_to_cite(k_find_nn=k_find_nn,
+                                       k_find_anchor=k_find_anchor,
+                                       k_filter_anchor=k_filter_anchor,
+                                       k_score_anchor=k_score_anchor,
+                                       k_find_weights=k_find_weights)
+
+        # create transfer matrix to transfer values from CITE-seq to CODEX
+        self.mapping.transfer_matrix(k=k_transfer_matrix,
+                                     c=c_transfer_matrix,
+                                     mask_threshold=mask_threshold)
+
+        self.annotation.transfer_labels(user_input=False)
+
+        # mask some CODEX cells that don't have near CITE-cells.
+        if mask:
+            self.data_processor.mask_codex(stvea=self.stvea)
+
+
 
     def pipeline2(self,
                  # read_codex args

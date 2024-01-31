@@ -15,17 +15,18 @@ class Annotation:
     def __init__(self, stvea):
         self.stvea = stvea
 
-    def transfer_labels(self):
+    def transfer_labels(self, user_input=True):
         """
         This function will show the gene expression levels for each CITE-seq cluster, ask user to input name for each CITE-seq cluster.
         These labels will be transferred to CODEX cells.
         """
-        # show user the gene expression info of the CITE-seq cluster
-        cluster_index = self.cluster_heatmap(1)
+        if user_input:
+            # show user the gene expression info of the CITE-seq cluster
+            cluster_index = self.cluster_heatmap(1)
 
-        # receive user annotation of CITE-seq clusters
-        self.cluster_names(cluster_index, 1, option=2)
-        cite_cluster_names_dict = self.stvea.cite_cluster_name_dict
+            # receive user annotation of CITE-seq clusters
+            self.cluster_names(cluster_index, 1, option=2)
+            cite_cluster_names_dict = self.stvea.cite_cluster_name_dict
 
         # create indicator matrix of CITE cell cluster assignments
         cite_cluster_assignment = deepcopy(self.stvea.cite_cluster)
@@ -36,12 +37,17 @@ class Annotation:
 
         # transfer labels from CITE to CODEX
         codex_cluster_names_dummies = self.stvea.transfer_matrix.dot(cite_cluster_assignment_dummies)
-        codex_cluster_index = codex_cluster_names_dummies.apply(lambda row: int(row.idxmax()), axis=1)
 
-        # codex_cluster_names_transferred will store the transferred names.
-        # note they are names not cluster indices.
-        self.stvea.codex_cluster_names_transferred = pd.DataFrame(
-            codex_cluster_index.apply(lambda x: self.stvea.cite_cluster_name_dict.get(int(x))))
+        if user_input:
+            codex_cluster_index = codex_cluster_names_dummies.apply(lambda row: int(row.idxmax()), axis=1)
+
+            # codex_cluster_names_transferred will store the transferred names.
+            # note they are names not cluster indices.
+            self.stvea.codex_cluster_names_transferred = pd.DataFrame(
+                codex_cluster_index.apply(lambda x: self.stvea.cite_cluster_name_dict.get(int(x))))
+        else:
+            codex_cluster_index = codex_cluster_names_dummies.apply(lambda row: row.idxmax(), axis=1)
+            self.stvea.codex_cluster_names_transferred = codex_cluster_index
 
     def cluster_heatmap(self,
                         dataset,

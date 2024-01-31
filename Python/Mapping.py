@@ -688,9 +688,15 @@ class Mapping:
         # find the nearest neighbors
         # return a dict {'nn_rr': nn_rr, 'nn_rq': nn_rq, 'nn_qr': nn_qr, 'nn_qq': nn_qq,
         #                 'cellsr': ref_emb.index.values, 'cellsq': query_emb.index.values}
+
+        if self.stvea.cite_latent.shape != (0, 0):
+            cite_latent = self.stvea.cite_latent
+        else:
+            cite_latent = self.stvea.cite_protein
+
         neighbors = Mapping.find_nn_rna(ref_emb=cca_data.iloc[:cite_count, :],
                                         query_emb=cca_data.iloc[cite_count:, :],
-                                        rna_mat=self.stvea.cite_latent,
+                                        rna_mat=cite_latent,
                                         k=k_find_nn,
                                         nn_option=nn_option)
 

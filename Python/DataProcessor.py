@@ -413,3 +413,8 @@ class DataProcessor:
         stvea.codex_spatial = stvea.codex_spatial[stvea.codex_mask]
         stvea.codex_emb = stvea.codex_emb[stvea.codex_mask]
         stvea.transfer_matrix = stvea.transfer_matrix[stvea.codex_mask]
+
+
+    @staticmethod
+    def mask_codex(stvea):
+        stvea.codex_cluster_names_transferred[~stvea.codex_mask] = 'Not Assigned'

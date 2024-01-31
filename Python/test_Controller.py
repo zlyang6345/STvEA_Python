@@ -10,6 +10,16 @@ import resource
 
 class TestController(TestCase):
 
+    def test_interface(self):
+
+        cn = Controller.Controller()
+        codex_protein = pd.read_csv('../Data/immunopheno/codex_protein_normalized_by_immunopheno.csv', index_col=0, header=0);
+        cite_protein = pd.read_csv('../Data/immunopheno/murine_spleen_protein_normalized.csv', index_col=0, header=0);
+        cite_cluster = pd.read_csv("../Data/immunopheno/cite_cluster_labels.csv", index_col=0, header=0)
+        codex_protein = codex_protein.iloc[:1000, :]
+        cn.interface(codex_protein, cite_protein, cite_cluster)
+
+
     def test_transfer_matrix_scalability(self):
         cn = Controller.Controller()
         amount_codex = -1
