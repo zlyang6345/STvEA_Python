@@ -22,9 +22,7 @@ class Controller:
         self.annotation = Annotation.Annotation(self.stvea)
 
     def interface(self,
-                 # read_codex args
                  codex_protein,
-                 # read_cite args
                  cite_protein,
                  cite_cluster,
                  # map_codex_to_cite args
